@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>RPO Arm — Quest Teleop</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif;
+      background: #0d1117; color: #e6edf3; -webkit-user-select: none; user-select: none;
+    }
+    #panel { padding: 18px; max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+    button {
+      font-size: 19px; padding: 14px 26px; border: 0; border-radius: 10px;
+      background: #238636; color: #fff; cursor: pointer; touch-action: manipulation;
+    }
+    button:disabled { background: #30363d; color: #8b949e; }
+    #status { margin: 14px 0; padding: 10px 12px; border-radius: 8px; background: #161b22; font-size: 14px; }
+    .ok { color: #3fb950; } .warn { color: #d29922; } .err { color: #f85149; }
+    /* 헤드셋 안에서 보이는 HUD (dom-overlay) */
+    #hud {
+      position: fixed; left: 12px; top: 12px; padding: 10px 12px;
+      background: rgba(13,17,23,.82); border: 1px solid #30363d; border-radius: 8px;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre; pointer-events: none; display: none; max-width: 92vw;
+      z-index: 10;   /* three.js 캔버스가 뒤에 깔리도록 */
+    }
+    body.xr-active #hud { display: block; }
+    body.xr-active #panel { display: none; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 10px; }
+    td, th { padding: 4px 8px; border-bottom: 1px solid #21262d; text-align: left; }
+    th { color: #8b949e; font-weight: 500; }
+    code { background: #161b22; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="panel">
+    <h1>RPO Arm — Quest Teleop</h1>
+    <div class="sub">Meta Quest 2 · WebXR 컨트롤러/핸드 트래킹 전송</div>
+
+    <button id="start">Start XR</button>
+    <div id="status">대기 중…</div>
+
+    <table>
+      <tr><th>입력</th><th>매핑</th></tr>
+      <tr><td>오른손 <b>Grip</b> (중지)</td><td><code>move</code> — 팔 추종 활성화 (clutch)</td></tr>
+      <tr><td>오른손 <b>Trigger</b> (검지)</td><td><code>right.trigger</code> — 0.0~1.0 아날로그, 손 쥐기</td></tr>
+      <tr><td>오른손 <b>A / B</b></td><td><code>reservedButtonA / B</code></td></tr>
+      <tr><td>오른손 <b>썸스틱</b></td><td><code>right.stick</code> — axes[2],[3]</td></tr>
+      <tr><td>왼손 <b>썸스틱</b></td><td>가상 로봇 위치 이동 (grip 잡고 밀면 높이) · 누르면 리셋</td></tr>
+      <tr><td>왼손 <b>X / Y</b></td><td>좌표 매핑 — 미러 토글 / yaw +90°</td></tr>
+      <tr><td>왼손 <b>Trigger</b></td><td>트립 해제 (TRIP 일 때만 · 대시보드에도 같은 버튼)</td></tr>
+      <tr><td>손 트래킹</td><td><code>hands.*</code> — 컨트롤러 내려놓으면 자동 전환</td></tr>
+    </table>
+  </div>
+
+  <div id="hud"></div>
+
+<script type="importmap">
+{ "imports": { "three": "/vendor/three.module.js" } }
+</script>
+<script type="module">
+"use strict";
+
+import * as THREE from "three";
+import { RobotView, addLights, COLORS } from "/robot_view.js";
+
+// ────────────────────────────────────────────────────────────────────────────
+// WebSocket
+// ────────────────────────────────────────────────────────────────────────────
+const WS_URL = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;
+let socket = null;
+let wsReady = false;
+
+const statusEl = document.getElementById("status");
+const hudEl = document.getElementById("hud");
+const startBtn = document.getElementById("start");
+
+function setStatus(html, cls) {
+  statusEl.innerHTML = cls ? `<span class="${cls}">${html}</span>` : html;
+}
+
+let robotState = null;   // 서버가 되돌려 보내는 로봇 상태 (관절 한계 등)
+
+function connectWS() {
+  socket = new WebSocket(WS_URL);
+  socket.onopen = () => { wsReady = true; setStatus("서버 연결됨 — [Start XR]을 누르세요", "ok"); };
+  socket.onclose = () => { wsReady = false; setStatus("서버 연결 끊김 — 3초 후 재시도", "warn"); setTimeout(connectWS, 3000); };
+  socket.onerror = () => { setStatus("WebSocket 오류", "err"); };
+  socket.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === "state") robotState = msg.data;
+    } catch (e) { /* 무시 */ }
+  };
+}
+connectWS();
+
+// XR 시작 전에도 로봇 상태를 미리 받아둔다 (세션 시작 즉시 로봇이 보이도록)
+fetch("/state").then(r => r.json()).then(d => { if (d && d.links) robotState = d; })
+               .catch(() => {});
+
+function send(obj) {
+  if (wsReady && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(obj));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// xr-standard 게임패드 매핑 (Quest Touch 컨트롤러)
+//   buttons[0] trigger(검지)  [1] squeeze/grip(중지)  [2] touchpad(Quest에는 없음)
+//   buttons[3] thumbstick press  [4] A or X  [5] B or Y
+//   axes[0],[1] touchpad(Quest 없음 → 항상 0)   axes[2],[3] thumbstick X,Y
+// stock index.html 이 axes[0] 을 읽어 Quest 썸스틱이 안 잡히던 버그를 여기서 바로잡는다.
+// ────────────────────────────────────────────────────────────────────────────
+const BTN = { trigger: 0, grip: 1, stickPress: 3, primary: 4, secondary: 5 };
+const AXIS = { stickX: 2, stickY: 3 };
+
+function readGamepad(gp) {
+  if (!gp) return null;
+  const b = (i) => (gp.buttons[i] ? { pressed: !!gp.buttons[i].pressed,
+                                      touched: !!gp.buttons[i].touched,
+                                      value: +(gp.buttons[i].value ?? 0).toFixed(4) }
+                                  : { pressed: false, touched: false, value: 0 });
+  const a = (i) => +((gp.axes[i] ?? 0)).toFixed(4);
+  return {
+    trigger: b(BTN.trigger).value,
+    triggerPressed: b(BTN.trigger).pressed,
+    grip: b(BTN.grip).value,
+    gripPressed: b(BTN.grip).pressed,
+    primary: b(BTN.primary).pressed,     // 오른손 A / 왼손 X
+    secondary: b(BTN.secondary).pressed, // 오른손 B / 왼손 Y
+    stickPress: b(BTN.stickPress).pressed,
+    stick: [a(AXIS.stickX), a(AXIS.stickY)],
+    // 진단용 원본 — 매핑이 다른 기기에서도 사후 분석 가능하게 남긴다
+    rawButtons: gp.buttons.map((x) => +(x.value ?? 0).toFixed(3)),
+    rawAxes: gp.axes.map((x) => +(x ?? 0).toFixed(3)),
+    mapping: gp.mapping || "",
+  };
+}
+
+function poseToObj(pose) {
+  if (!pose) return null;
+  const p = pose.transform.position, o = pose.transform.orientation;
+  return {
+    position: { x: +p.x.toFixed(5), y: +p.y.toFixed(5), z: +p.z.toFixed(5) },
+    orientation: { x: +o.x.toFixed(5), y: +o.y.toFixed(5), z: +o.z.toFixed(5), w: +o.w.toFixed(5) },
+  };
+}
+
+// 손 트래킹은 25관절 × 90Hz 라 대역폭이 크다. 기본은 요약(손목 + 손가락 끝 5개)만 보내고,
+// 전체 관절이 필요할 때만 handsFull 로 켠다.
+const TIPS = ["thumb-tip", "index-finger-tip", "middle-finger-tip", "ring-finger-tip", "pinky-finger-tip"];
+let handsFull = false;
+
+function readHand(frame, inputSource, refSpace) {
+  if (!inputSource.hand) return null;
+  const out = {};
+  const names = handsFull ? Array.from(inputSource.hand.keys()) : ["wrist", ...TIPS];
+  for (const name of names) {
+    const joint = inputSource.hand.get(name);
+    if (!joint) continue;
+    const jp = frame.getJointPose ? frame.getJointPose(joint, refSpace) : null;
+    if (!jp) continue;
+    const p = jp.transform.position, o = jp.transform.orientation;
+    out[name] = {
+      p: [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)],
+      q: [+o.x.toFixed(4), +o.y.toFixed(4), +o.z.toFixed(4), +o.w.toFixed(4)],
+      r: +(jp.radius ?? 0).toFixed(4),
+    };
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// XR 세션
+// ────────────────────────────────────────────────────────────────────────────
+let xrSession = null;
+let refSpace = null;
+let frameCount = 0;
+let lastHudUpdate = 0;
+
+async function startXR() {
+  if (!navigator.xr) { setStatus("이 브라우저는 WebXR을 지원하지 않습니다", "err"); return; }
+
+  const opts = {
+    requiredFeatures: ["local-floor"],
+    optionalFeatures: ["hand-tracking", "unbounded", "dom-overlay", "hit-test", "high-fixed-foveation-level"],
+    domOverlay: { root: document.getElementById("hud") },
+  };
+
+  let session;
+  try {
+    session = await navigator.xr.requestSession("immersive-ar", opts);
+  } catch (e1) {
+    try {
+      session = await navigator.xr.requestSession("immersive-vr", opts);
+      send({ type: "log", data: "immersive-ar 실패 → immersive-vr 로 대체" });
+    } catch (e2) {
+      setStatus(`XR 세션 시작 실패: ${e2.message}`, "err");
+      return;
+    }
+  }
+
+  xrSession = session;
+  document.body.classList.add("xr-active");
+  startBtn.disabled = true;
+  setStatus("XR 세션 활성", "ok");
+  send({ type: "log", data: "XR session started" });
+
+  session.addEventListener("end", () => {
+    xrSession = null;
+    refSpace = null;
+    if (renderer) {
+      renderer.setAnimationLoop(null);
+      renderer.domElement.remove();
+      renderer.dispose();
+      renderer = null;
+    }
+    if (robotView) { robotView.dispose(); robotView = null; }
+    stage = null;
+    document.body.classList.remove("xr-active");
+    startBtn.disabled = false;
+    setStatus("XR 세션 종료됨", "warn");
+    send({ type: "log", data: "XR session ended" });
+  });
+
+  await initRenderer(session);
+  refSpace = renderer.xr.getReferenceSpace();
+  renderer.setAnimationLoop(onXRFrame);
+}
+
+function onXRFrame(time, frame) {
+  if (!frame) return;
+  const session = frame.session;
+  refSpace = refSpace || renderer.xr.getReferenceSpace();
+  if (!refSpace) return;
+
+  frameCount++;
+
+  const payload = {
+    t: +(time / 1000).toFixed(4),
+    frame: frameCount,
+    left: null,        // 컨트롤러 소스 전용 (oculus-touch-v3)
+    right: null,
+    handPose: {},      // 손 트래킹 소스의 grip/targetRay/합성 gamepad
+    hands: {},         // 손 관절
+    // stock teleop 서버(__update)가 요구하는 키. 오른손 기준으로 채워
+    // 기존 pose 누적 로직을 그대로 살린다.
+    move: false,
+    position: { x: 0, y: 0, z: 0 },
+    orientation: { x: 0, y: 0, z: 0, w: 1 },
+    scale: 1.0,
+    reservedButtonA: false,
+    reservedButtonB: false,
+  };
+
+  const head = frame.getViewerPose(refSpace);
+  payload.head = head ? poseToObj(head.views[0]) : null;
+
+  for (const src of session.inputSources) {
+    const side = src.handedness; // "left" | "right" | "none"
+    if (side !== "left" && side !== "right") continue;
+
+    const entry = {
+      targetRay: poseToObj(src.targetRaySpace ? frame.getPose(src.targetRaySpace, refSpace) : null),
+      // gripSpace 는 "도구를 쥔 손" 기준이라 로봇 EE 자세에 더 자연스럽다.
+      grip: poseToObj(src.gripSpace ? frame.getPose(src.gripSpace, refSpace) : null),
+      gamepad: readGamepad(src.gamepad),
+      profiles: src.profiles || [],
+      tracked: src.targetRayMode === "tracked-pointer",
+    };
+
+    // Quest 는 손 트래킹 중에도 oculus-hand 입력소스에 합성 gamepad(버튼 10개, 축 0개)를
+    // 붙여 보낸다. 같은 handedness 로 컨트롤러와 손이 동시에 올라오므로 슬롯을 분리하지
+    // 않으면 늦게 순회된 쪽이 앞의 것을 덮어써 pose 가 뒤섞인다.
+    // (실측: 컨트롤러만일 때 grip↔targetRay 각도차는 48.15°±0.00 로 일정하지만,
+    //  손 소스가 섞이면 136°±14 로 튄다.)
+    if (src.hand) {
+      payload.handPose[side] = entry;
+      const hand = readHand(frame, src, refSpace);
+      if (hand) payload.hands[side] = hand;
+    } else {
+      payload[side] = entry;
+    }
+  }
+
+  // 오른손 컨트롤러 → stock 키 채우기 (컨트롤러가 없으면 손 트래킹 손목으로 대체)
+  const r = payload.right;
+  if (r && r.gamepad) {
+    const src = r.grip || r.targetRay;
+    if (src) { payload.position = src.position; payload.orientation = src.orientation; }
+    payload.move = r.gamepad.gripPressed || r.gamepad.grip > 0.5;
+    payload.reservedButtonA = r.gamepad.primary;
+    payload.reservedButtonB = r.gamepad.secondary;
+    // 썸스틱 X 로 스케일 조절 (0.2 ~ 1.0). stock 의 axes[0] 버그를 여기서 수정.
+    const sx = r.gamepad.stick[0];
+    if (Math.abs(sx) > 0.15) {
+      scaleValue = Math.max(0.2, Math.min(1.0, scaleValue + sx * 0.01));
+    }
+    payload.scale = +scaleValue.toFixed(3);
+  } else if (payload.hands.right && payload.hands.right.wrist) {
+    const w = payload.hands.right.wrist;
+    payload.position = { x: w.p[0], y: w.p[1], z: w.p[2] };
+    payload.orientation = { x: w.q[0], y: w.q[1], z: w.q[2], w: w.q[3] };
+    // 손 트래킹일 때는 엄지-검지 핀치로 clutch
+    payload.move = pinchDistance(payload.hands.right) < 0.03;
+  }
+
+  send({ type: "pose", data: payload });
+  updateSceneFromInput(payload);
+  updateRobot(robotState);
+  updateHUD(payload);
+
+  renderer.render(scene, camera);
+}
+
+let scaleValue = 1.0;
+
+function pinchDistance(hand) {
+  const a = hand["thumb-tip"], b = hand["index-finger-tip"];
+  if (!a || !b) return Infinity;
+  return Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1], a.p[2] - b.p[2]);
+}
+
+function shortName(n) {
+  return n.replace(/_joint$/, "").replace(/^right_/, "").slice(0, 7);
+}
+
+function fmtDeg(d) {
+  const s = (d >= 0 ? "+" : "") + d.toFixed(0) + "°";
+  return s.padStart(6);
+}
+
+function statusMark(st) {
+  return st === "limit" ? "!! 한계" : (st === "near" ? "!  근접" : "");
+}
+
+// 관절 가동범위 게이지. 가운데가 중립, 양끝이 한계.
+// norm: -1(하한) ~ 0(중립) ~ +1(상한)
+function limitGauge(norm, width = 13) {
+  const mid = (width - 1) / 2;
+  const pos = Math.round(mid + Math.max(-1, Math.min(1, norm)) * mid);
+  let s = "";
+  for (let i = 0; i < width; i++) {
+    if (i === pos) s += "●";
+    else if (i === 0 || i === width - 1) s += "|";
+    else if (i === mid) s += "·";
+    else s += "─";
+  }
+  return s;
+}
+
+function fmtVec(v) {
+  return v ? `${v.x >= 0 ? "+" : ""}${v.x.toFixed(3)} ${v.y >= 0 ? "+" : ""}${v.y.toFixed(3)} ${v.z >= 0 ? "+" : ""}${v.z.toFixed(3)}` : "—";
+}
+
+function updateHUD(p) {
+  const now = performance.now();
+  if (now - lastHudUpdate < 100) return; // 10 Hz
+  lastHudUpdate = now;
+
+  const lines = [];
+  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}`);
+  for (const side of ["right", "left"]) {
+    const c = p[side];
+    if (!c) { lines.push(`${side.padEnd(5)} —`); continue; }
+    const g = c.gamepad || {};
+    const pos = c.grip ? c.grip.position : (c.targetRay ? c.targetRay.position : null);
+    lines.push(
+      `${side.padEnd(5)} ${fmtVec(pos)}  ` +
+      `T${(g.trigger ?? 0).toFixed(2)} G${(g.grip ?? 0).toFixed(2)} ` +
+      `${g.primary ? "A" : "·"}${g.secondary ? "B" : "·"} ` +
+      `stk[${(g.stick ? g.stick[0] : 0).toFixed(2)},${(g.stick ? g.stick[1] : 0).toFixed(2)}]`
+    );
+  }
+  const hs = Object.keys(p.hands);
+  if (hs.length) lines.push(`hands  ${hs.join(",")}  pinchR ${p.hands.right ? pinchDistance(p.hands.right).toFixed(3) : "—"}`);
+  lines.push(`MOVE ${p.move ? "████ ON" : "░░░░ off"}`);
+
+  // 로봇 상태 — 헤드셋을 쓰면 Mac 화면을 못 보므로 관절 한계를 여기서 봐야 한다
+  if (robotState) {
+    lines.push("");
+    lines.push("─── ROBOT ───────────────────");
+    for (const j of robotState.joints || []) {
+      lines.push(`${limitGauge(j.norm)} ${shortName(j.name).padEnd(7)}${fmtDeg(j.deg)}  ${statusMark(j.status)}`);
+    }
+    if (robotState.mapping) {
+      const m = robotState.mapping;
+      lines.push(`map   yaw ${m.yaw_deg.toFixed(0)}°  mirror ${m.mirror ? "ON" : "off"}   (좌X=미러 좌Y=yaw)`);
+      if (m.chirality_warning) lines.push("⚠ 거울상 — 오른손이 왼손으로 보입니다");
+    }
+    if (robotState.reach) {
+      const r = robotState.reach;
+      const out = r.current < r.min || r.current > r.max;
+      lines.push(`reach ${r.current.toFixed(3)}m [${r.min.toFixed(2)}~${r.max.toFixed(2)}] ${out ? "⚠ 범위밖" : "ok"}`);
+    }
+    if (stage) {
+      lines.push(`stage x${stage.position.x.toFixed(2)} y${stage.position.y.toFixed(2)} z${stage.position.z.toFixed(2)}` +
+                 `   (좌스틱=이동, 좌grip+스틱=높이, 스틱누름=리셋)`);
+    }
+    const warn = [];
+    if (robotState.n_near) warn.push(`관절한계 ${robotState.n_near}개`);
+    if (robotState.clamped) warn.push("워크스페이스 클램프");
+    if (warn.length) lines.push(`⚠ ${warn.join(" / ")}`);
+
+    // ── 지금 무엇을 움직이나 ──────────────────────────────────────
+    // ★ 실물이 붙어 있는데 Isaac 주소(:4453)로 잘못 들어가면 조종은 되는데
+    //   실물이 안 움직인다. 그 반대도 마찬가지다. 헤드셋을 쓰면 터미널을
+    //   못 보므로 여기에 없으면 알 방법이 없다.
+    const rcv = robotState.receiver;
+    if (rcv) {
+      // 라벨에 이미 "실물 젯슨"/"Isaac Sim" 이 들어있다. 접두사는 표식만.
+      const mark = rcv.kind === "real" ? "\u25cf" : "\u25cb";
+      lines.push(`대상  ${mark} ${rcv.label}   [${rcv.profile}]`);
+    }
+
+    // ── 모터 ──────────────────────────────────────────────────────
+    // ★ 조종자는 헤드셋을 쓰고 있어 Mac 대시보드를 못 본다. 팔이 왜 멈췄는지,
+    //   어떻게 푸는지를 여기서 못 보면 실물 앞에서 아무것도 할 수 없다.
+    const m = robotState.motors;
+    if (m) {
+      lines.push("");
+      lines.push("─── MOTOR ───────────────────");
+      const linkTxt = m.link_ok ? (m.link || "ok") : "⚠ 끊김";
+      lines.push(`state ${(m.state || "—").padEnd(8)} 지령 ${(m.mode || "—").padEnd(9)} link ${linkTxt}`);
+      if (m.link_age_ms !== null && m.link_age_ms !== undefined) {
+        lines.push(`수신  ${m.link_age_ms.toFixed(0)}ms 전   젯슨 지령나이 ${
+          m.rx_age_ms === null || m.rx_age_ms === undefined ? "—" : m.rx_age_ms.toFixed(0) + "ms"}`);
+      }
+      if (m.soft_start !== null && m.soft_start !== undefined && m.soft_start < 1) {
+        lines.push(`소프트스타트 ${(m.soft_start * 100).toFixed(0)}%`);
+      }
+      if (m.temp && m.temp.length) {
+        lines.push(`온도  ${m.temp.map(v => (v === null ? "—" : v.toFixed(0))).join(" / ")} °C`);
+      }
+      if (m.err && m.err.some(v => v)) lines.push(`⚠ 모터 에러 ${m.err.join(",")}`);
+      if (m.await_rearm && m.state !== "TRIP") {
+        lines.push("⏸ 재무장 필요 — 클러치를 다시 잡으세요");
+      }
+      if (m.state === "TRIP") {
+        lines.push("");
+        lines.push("███ TRIP — 팔이 멈췄습니다 ███");
+        lines.push(`  ${m.trip || ""}`);
+        lines.push(m.link_ok
+          ? "  왼손 트리거 = 해제  (해제 후 클러치를 다시 잡으세요)"
+          : "  ⚠ 링크가 끊겨 지금은 해제할 수 없습니다");
+      }
+    }
+  }
+  hudEl.textContent = lines.join("\n");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// VR 안에 로봇 그리기
+//
+// 기구학은 전부 서버(placo)에 있다. 여기서는 서버가 보내준 링크 pose 를 받아
+// 그 자리에 상자를 놓기만 한다. JS 에서 FK 를 다시 구현하면 두 벌이 생기고
+// 언젠가 반드시 어긋난다.
+//
+// 서버가 보내는 pose 는 이미 **뷰 좌표계**로 변환된 값이다 (제어 매핑의 역행렬 적용).
+// 그래서 미러/yaw 를 어떻게 설정해도 "손을 오른쪽으로 옮기면 화면에서도 오른쪽"이 성립한다.
+// ────────────────────────────────────────────────────────────────────────────
+let renderer = null, scene = null, camera = null;
+let stage = null;                 // 로봇을 담는 그룹 (사용자 앞 편한 높이에 배치)
+let robotView = null;
+let ctrlMarkers = { left: null, right: null };
+
+// 팔이 바닥에 붙어 보이면 조작자가 본능적으로 아래로 손을 뻗게 되어 불편하다.
+// 실제 팔이 책상 위에 있는 상황을 기본값으로 잡는다 (책상 높이 ~0.8 m).
+const STAGE_DEFAULT = { x: 0, y: 0.80, z: -0.55 };
+
+async function initRenderer(session) {
+  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setPixelRatio(1);        // 헤드셋에서는 1 이 프레임에 유리
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.xr.enabled = true;
+  renderer.xr.setReferenceSpaceType("local-floor");
+  await renderer.xr.setSession(session);
+  Object.assign(renderer.domElement.style,
+                { position: "fixed", inset: "0", zIndex: "1" });
+  document.body.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(70, 1, 0.01, 50);
+  addLights(scene);
+
+  stage = new THREE.Group();
+  stage.position.set(STAGE_DEFAULT.x, STAGE_DEFAULT.y, STAGE_DEFAULT.z);
+  scene.add(stage);
+
+  // Quest 는 팔+손 331k 삼각형이 부담이라 기본은 박스다. ?mesh=1 로 켤 수 있다.
+  const useMeshes = new URLSearchParams(location.search).get("mesh") === "1";
+  robotView = new RobotView(stage, { useMeshes });
+
+  for (const side of ["left", "right"]) {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 12, 8),
+      new THREE.MeshStandardMaterial({ color: COLORS.ctrlIdle }));
+    m.visible = false;
+    scene.add(m);   // 컨트롤러는 stage 가 아니라 실제 손 위치에 둔다
+    ctrlMarkers[side] = m;
+  }
+}
+
+function updateRobot(s) {
+  if (robotView) robotView.update(s);
+}
+
+/** 컨트롤러 표식과 스테이지 위치 조절. */
+function updateSceneFromInput(p) {
+  for (const side of ["left", "right"]) {
+    const c = p[side], m = ctrlMarkers[side];
+    if (!m) continue;
+    const pose = c && (c.grip || c.targetRay);
+    m.visible = !!pose;
+    if (pose) {
+      m.position.set(pose.position.x, pose.position.y, pose.position.z);
+      const active = side === "right" ? p.move : false;
+      m.material.color.setHex(active ? COLORS.ctrlActive : COLORS.ctrlIdle);
+    }
+  }
+
+  // 왼손 썸스틱으로 로봇을 앞뒤/좌우로 옮긴다.
+  // 팔이 몸에 너무 붙거나 멀면 조작이 불편한데, 헤드셋을 쓴 채 맞춰야 한다.
+  const lg = p.left && p.left.gamepad;
+  if (lg && stage) {
+    const [sx, sy] = lg.stick || [0, 0];
+    if (Math.abs(sx) > 0.15) stage.position.x += sx * 0.006;
+    if (Math.abs(sy) > 0.15) {
+      // 왼손 grip 을 잡은 채 위아래로 밀면 높이 조절. 실제 팔이 책상 위에 있으면
+      // 가상 팔도 같은 높이에 둬야 감각이 맞는다.
+      if (lg.grip > 0.5) stage.position.y = Math.max(0.1, stage.position.y - sy * 0.008);
+      else stage.position.z += sy * 0.006;
+    }
+    if (lg.stickPress) stage.position.set(STAGE_DEFAULT.x, STAGE_DEFAULT.y, STAGE_DEFAULT.z);
+  }
+
+  // 왼손 트리거 = 트립 해제. 트립 중이고 링크가 살아있을 때만 나간다.
+  //
+  // ★ 대시보드에도 같은 버튼이 있다. 보통은 대시보드 담당자가 누르지만,
+  //   혼자 시운전할 때나 사람이 자리를 비웠을 때를 위해 여기에도 둔다.
+  //   해제해도 팔은 IDLE 로 갈 뿐 움직이지 않는다 (다시 클러치를 잡아야 한다).
+  //   그래서 잘못 눌러도 위험하지 않다.
+  const tripped = robotState && robotState.motors && robotState.motors.state === "TRIP";
+  const canClear = tripped && robotState.motors.link_ok;
+  const pressed = !!(lg && lg.trigger > 0.7);
+  if (pressed && !prevLeftTrigger && canClear) {
+    send({ type: "cmd", data: { action: "clear_trip" } });
+  }
+  prevLeftTrigger = pressed;
+}
+
+let prevLeftTrigger = false;
+
+startBtn.addEventListener("click", startXR);
+
+if (navigator.xr) {
+  navigator.xr.isSessionSupported("immersive-ar").then((ok) => {
+    if (!ok) setStatus("immersive-ar 미지원 — immersive-vr 로 시도합니다", "warn");
+  });
+} else {
+  setStatus("WebXR 미지원 브라우저입니다", "err");
+}
+</script>
+</body>
+</html>

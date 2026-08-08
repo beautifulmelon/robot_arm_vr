@@ -1,0 +1,222 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>방향 뷰어 — VR/대시보드와 같은 규약</title>
+<style>
+  :root {
+    --bg:#0d1117; --panel:#161b22; --line:#30363d; --fg:#e6edf3; --dim:#8b949e;
+    --ok:#3fb950; --blue:#58a6ff; --warn:#d29922; --bad:#f85149; --purple:#a371f7;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  #wrap { display:flex; height:100vh; }
+  #view { flex:1; position:relative; min-width:0; }
+  #view canvas { display:block; }
+  #side { width:340px; flex:none; border-left:1px solid var(--line);
+          overflow-y:auto; padding:14px; background:var(--panel); }
+  h1 { font-size:14px; margin:0 0 4px; letter-spacing:.02em; }
+  .sub { color:var(--dim); font-size:11px; margin-bottom:14px; }
+  h2 { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;
+       margin:18px 0 8px; padding-bottom:5px; border-bottom:1px solid var(--line); }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:2px 0; }
+  .row b { font-weight:600; }
+  button { background:#21262d; color:var(--fg); border:1px solid var(--line);
+           border-radius:6px; padding:6px 10px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--blue); }
+  button.on { background:var(--blue); border-color:var(--blue); color:#04121f; font-weight:600; }
+  button.warn.on { background:var(--warn); border-color:var(--warn); }
+  .btns { display:flex; gap:6px; flex-wrap:wrap; }
+  label.sld { display:block; margin:9px 0 2px; }
+  label.sld span { float:right; color:var(--dim); }
+  input[type=range] { width:100%; accent-color:var(--blue); }
+  .st-ok{color:var(--ok)} .st-near{color:var(--warn)} .st-limit{color:var(--bad)}
+  table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  td { padding:3px 2px; }
+  td:first-child { color:var(--dim); }
+  .axis { display:inline-block; width:9px; height:9px; border-radius:2px;
+          margin-right:6px; vertical-align:-1px; }
+  .note { color:var(--dim); font-size:11px; margin-top:8px; line-height:1.6; }
+  .note b { color:var(--fg); }
+  #legend { position:absolute; left:14px; top:14px; background:rgba(13,17,23,.82);
+            border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+            font-size:11.5px; line-height:1.8; pointer-events:none; }
+  #err { position:absolute; left:14px; bottom:14px; color:var(--bad); font-size:12px; }
+</style>
+
+<div id="wrap">
+  <div id="view">
+    <div id="legend"></div>
+    <div id="err"></div>
+  </div>
+
+  <div id="side">
+    <h1>방향 뷰어</h1>
+    <div class="sub">그리는 코드는 VR 헤드셋 안에서 쓰는 <b>robot_view.js</b> 그대로입니다.</div>
+
+    <h2>좌표 매핑</h2>
+    <div class="btns" style="margin-bottom:6px">
+      <button data-yaw="0">yaw 0°</button>
+      <button data-yaw="90">90°</button>
+      <button data-yaw="180">180°</button>
+      <button data-yaw="270">270°</button>
+    </div>
+    <div class="btns">
+      <button id="mir" class="warn">미러 off</button>
+      <button id="reset">자세 초기화</button>
+    </div>
+
+    <h2>이 설정에서 손을 밀면</h2>
+    <table id="map"></table>
+    <div class="note">
+      <b>이 표를 실물과 대조하세요.</b> 손을 그 방향으로 밀었을 때 실물 EE 가
+      표와 같은 쪽으로 가면 이 설정이 맞습니다.<br>
+      ★ <b>위</b> 줄은 8조합이 전부 같습니다. 위아래가 반대면 yaw·미러로는
+      절대 못 고칩니다 — 가이드 §2 로 가세요.
+    </div>
+
+    <h2>관절</h2>
+    <div id="sliders"></div>
+
+    <h2>상태</h2>
+    <table id="info"></table>
+
+    <div class="note" style="margin-top:16px">
+      화면의 <span style="color:#f85149">빨강</span>/<span style="color:#3fb950">초록</span>/<span style="color:#58a6ff">파랑</span>
+      축은 <b>로봇 좌표계</b>(앞/왼쪽/위)입니다. yaw 를 바꾸면 이 축이 돌아갑니다 —
+      화면은 언제나 <b>조작자 기준</b>이기 때문입니다.
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "/vendor/three.module.js" } }
+</script>
+<script type="module">
+"use strict";
+
+import * as THREE from "three";
+import { OrbitControls } from "/vendor/OrbitControls.js";
+import { RobotView } from "/robot_view.js";
+
+// ── 장면 ────────────────────────────────────────────────────────────────────
+// 뷰 좌표계는 WebXR RUB (y-up) 이다. 로봇 좌표계(z-up) 는 robot_view.js 의
+// 루트 그룹에 걸린 view_matrix 가 변환해 준다. 여기 카메라는 y-up 이 맞다.
+const host = document.getElementById("view");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 50);
+camera.position.set(0.55, 0.45, 0.95);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+host.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.18, 0);
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a1f27, 1.5));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(1.2, 2.0, 1.4);
+scene.add(key);
+
+const robotView = new RobotView(scene, { showGrid: true, showMarkers: true });
+// 목표 표식은 텔레옵일 때만 의미가 있다. 여기서는 IK 목표가 없으므로 감춘다
+// (안 감추면 원점에 보라색 구가 남아 EE 표식과 헷갈린다).
+robotView.targetMarker.visible = false;
+
+// 로봇 좌표계 축 — 루트의 자식이라 view_matrix 를 함께 받는다.
+// 이게 "이 설정에서 로봇의 앞이 화면 어느 쪽인가" 를 보여준다.
+robotView.root.add(new THREE.AxesHelper(0.28));
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+resize();
+
+// ── 조작 상태 ───────────────────────────────────────────────────────────────
+let yaw = 0, mirror = false, q = [], joints = [];
+
+// ★ 좌표 매핑 계산은 여기에 두지 않는다. 서버가 state.hand_dirs 로 내려준다.
+//   브라우저에 또 구현하면 두 벌이 생기고 언젠가 어긋난다 — 그때는 "방향이
+//   안 맞는다" 로 보이지만 원인은 두 구현의 불일치다. (가이드 §6-2)
+
+function renderMap() {
+  document.querySelectorAll("[data-yaw]").forEach((b) =>
+    b.classList.toggle("on", +b.dataset.yaw === yaw));
+  const mb = document.getElementById("mir");
+  mb.classList.toggle("on", mirror);
+  mb.textContent = mirror ? "미러 ON" : "미러 off";
+
+  document.getElementById("legend").innerHTML = `
+    <span class="axis" style="background:#f85149"></span>로봇 앞 (+x)<br>
+    <span class="axis" style="background:#3fb950"></span>로봇 왼쪽 (+y)<br>
+    <span class="axis" style="background:#58a6ff"></span>로봇 위 (+z)<br>
+    <span style="color:#8b949e">yaw ${yaw}° · 미러 ${mirror ? "ON" : "off"}</span>`;
+}
+
+// ── 슬라이더 ────────────────────────────────────────────────────────────────
+async function initJoints() {
+  const info = await (await fetch("/info")).json();
+  joints = info.joints;
+  q = joints.map(() => 0);
+  document.getElementById("sliders").innerHTML = joints.map((j, i) => `
+    <label class="sld">${j.name}<span id="v${i}">0.0°</span>
+      <input type="range" data-i="${i}" min="${j.lower}" max="${j.upper}"
+             step="0.5" value="0">
+    </label>`).join("");
+  document.querySelectorAll("input[type=range]").forEach((el) =>
+    el.addEventListener("input", () => {
+      const i = +el.dataset.i;
+      q[i] = +el.value * Math.PI / 180;
+      document.getElementById("v" + i).textContent = (+el.value).toFixed(1) + "°";
+    }));
+}
+
+// ── 갱신 루프 ───────────────────────────────────────────────────────────────
+async function tick() {
+  try {
+    const url = `/state?q=${q.join(",")}&yaw=${yaw}&mirror=${mirror ? 1 : 0}`;
+    const s = await (await fetch(url)).json();
+    robotView.update(s);
+    document.getElementById("err").textContent = "";
+    document.getElementById("map").innerHTML = (s.hand_dirs || []).map((d) =>
+      `<tr><td>${d.from} →</td><td><b>로봇 ${d.to}</b></td></tr>`).join("");
+    document.getElementById("info").innerHTML =
+      `<tr><td>로봇</td><td>${s.robot.name} · ${s.robot.dof}축</td></tr>` +
+      s.joints.map((j) =>
+        `<tr><td>${j.name}</td><td class="st-${j.status}">${j.deg.toFixed(1)}° · ${j.status}</td></tr>`
+      ).join("") +
+      `<tr><td>EE (로봇좌표)</td><td>${s.ee_point.map((v) => v.toFixed(3)).join(", ")}</td></tr>`;
+  } catch (e) {
+    document.getElementById("err").textContent = "서버 연결 끊김 — serve_viewer.py 가 떠 있나요?";
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+// ── 버튼 ────────────────────────────────────────────────────────────────────
+document.querySelectorAll("[data-yaw]").forEach((b) =>
+  b.addEventListener("click", () => { yaw = +b.dataset.yaw; renderMap(); }));
+document.getElementById("mir").addEventListener("click", () => { mirror = !mirror; renderMap(); });
+document.getElementById("reset").addEventListener("click", () => {
+  q = q.map(() => 0);
+  document.querySelectorAll("input[type=range]").forEach((el) => {
+    el.value = 0;
+    document.getElementById("v" + el.dataset.i).textContent = "0.0°";
+  });
+});
+addEventListener("keydown", (e) => {
+  if (e.key === "m") { mirror = !mirror; renderMap(); }
+  if (e.key === "y") { yaw = (yaw + 90) % 360; renderMap(); }
+});
+
+renderMap();
+await initJoints();
+tick();
+</script>

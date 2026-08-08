@@ -1,0 +1,362 @@
+<?xml version="1.0"?>
+<robot name="body">
+  <!-- 에코로버 본체. Fusion 조립본에서 본체만 추출. -->
+  <!-- body_base 원점 = 바닥 접지면 × 바퀴 접지점 중심. +X 앞 / +Z 위. -->
+  <link name="body_base">
+    <inertial>
+      <origin xyz="-0.061567948 0.000033788 0.298421078" rpy="0 0 0" />
+      <mass value="81.615264" />
+      <inertia ixx="7.741919425" ixy="-0.000045293" ixz="1.922939746" iyy="9.914031009" iyz="0.000923786" izz="7.474368729" />
+    </inertial>
+    <visual>
+      <origin xyz="0.279575 -0.190875 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x200_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.242374885 -0.220014886 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.200000008 0.04 0.039999998" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 0.249125007 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x200_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.242374885 0.219985121 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.200000008 0.04 0.039999998" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.362374887 -0.240014887 0.16771" rpy="-1.570796327 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x480_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.362374887 -0.000014887 0.16771" rpy="-1.570796327 -1.570796327 0" />
+      <geometry>
+        <box size="0.04 0.04 0.48" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.220014887 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.097625113 -0.220014887 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.21998512 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.097625113 0.21998512 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.122374887 0.21998512 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.122374887 0.21998512 0.29271" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.122374887 -0.220014887 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.122374887 -0.220014887 0.29271" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 -0.220014887 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x600_1_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.10071012 -0.003099878 0.44771" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.479830017 0.479829987 0.6" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 0.21998512 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x600_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.09921012 0.22148512 0.44771" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.043 0.476829987 0.6" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.326374887 -0.207514887 0.145025" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/front_wheel_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.297624887 -0.207514887 0.073775" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.064 0.1525 0.1475" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.326374887 0.207485113 0.145025" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/front_wheel_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.297624887 0.207485113 0.073775" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.064 0.1525 0.1475" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 0.19998512 0.167710001" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.317625113 -0.00001488 0.167710001" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.15798512 0.145025001" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/wheel_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.297639029 0.15798512 0.07552848" rpy="0 0 0" />
+      <geometry>
+        <box size="0.138972168 0.085 0.144993042" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.15801488 0.145025001" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/wheel_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.297639029 -0.15801488 0.07552848" rpy="0 0 0" />
+      <geometry>
+        <box size="0.138972168 0.085 0.144993042" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.262374887 0.199985113 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.262374887 -0.000014887 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.047743849 -0.220014887 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.192743849 -0.220014887 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.047743849 0.21998512 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.192743849 0.21998512 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.240014887 0.318693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.277625113 -0.220014887 0.298693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.031743849 0.04998512 0.76091" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/logitech_c920_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.043743849 -0.000014881 0.77441" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.093986082 0.027 0.024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/top_cover_front_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.170243848 -0.000014879 0.76771" rpy="0 0 0" />
+      <geometry>
+        <box size="0.253 0.486399998 0.046400024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/top_cover_back_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.319243848 -0.000014879 0.76771" rpy="0 0 0" />
+      <geometry>
+        <box size="0.045 0.486399998 0.046400024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.096243849 -0.016970443 0.74441" rpy="1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/logitech_c920arm_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.068118849 0.000018725 0.754285" rpy="1.570796327 0 1.570796327" />
+      <geometry>
+        <box size="0.044067211 0.02175 0.06225" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.560401564 -0.221816625 0.037320844" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/2d_lidar_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.17241356 -0.000014882 0.810410016" rpy="0 0 0" />
+      <geometry>
+        <box size="0.076 0.075998627 0.041" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.19998512 0.318693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.277625113 0.21998512 0.298693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.102374887 0.23998512 0.318693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.082374887 0.21998512 0.298693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.102374887 -0.200016049 0.318693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.082374887 -0.220016049 0.298693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/body10.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.096125127 -0.000014889 0.323701791" rpy="0 0 0" />
+      <geometry>
+        <box size="0.483000015 0.479999992 0.231983582" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/body11.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.012552544 -0.000014881 0.14621" rpy="0 0 0" />
+      <geometry>
+        <box size="0.516194862 0.473660011 0.003" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="arm_mount" />
+  <joint name="arm_mount_joint" type="fixed">
+    <!-- 팔 base_link(=joint1 원점)이 놓이는 자리 -->
+    <parent link="body_base" />
+    <child link="arm_mount" />
+    <origin xyz="0.314375 -0.000015 0.18446" rpy="0 0 0" />
+  </joint>
+  <link name="body_camera_mount" />
+  <joint name="body_camera_mount_joint" type="fixed">
+    <!-- 후상방 카메라(Logitech C920). Fusion 조인트오리진 cam2 에서 가져옴. ROS optical 규약: +Z=광축(보는 방향) +Y=영상아래 +X=영상오른쪽 -->
+    <parent link="body_base" />
+    <child link="body_camera_mount" />
+    <origin xyz="-0.032744 -0.000015 0.77441" rpy="-1.570796327 0 -1.570796327" />
+  </joint>
+</robot>

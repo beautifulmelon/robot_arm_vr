@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RPO Arm — 상태 대시보드</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px;
+      font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif;
+      background: #0d1117; color: #e6edf3;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 2px; }
+    .sub { color: #8b949e; font-size: 13px; margin-bottom: 18px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 10px 12px; }
+    .card .k { color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .card .v { font-size: 20px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .card.warn { border-color: #9e6a03; } .card.warn .v { color: #d29922; }
+    .card.bad  { border-color: #8b2c2c; } .card.bad  .v { color: #f85149; }
+    .card.good .v { color: #3fb950; }
+
+    h2 { font-size: 14px; color: #8b949e; font-weight: 600; margin: 22px 0 10px;
+         text-transform: uppercase; letter-spacing: .04em; }
+
+    .joint { margin-bottom: 14px; }
+    .joint-head { display: flex; justify-content: space-between; align-items: baseline;
+                  font-size: 13px; margin-bottom: 4px; }
+    .joint-name { font-weight: 600; }
+    .joint-val { font-variant-numeric: tabular-nums; color: #8b949e; }
+    .joint-val b { color: #e6edf3; font-size: 15px; }
+
+    /* 관절 가동범위 막대. 가운데가 중립, 양끝이 한계. */
+    .bar {
+      position: relative; height: 24px; background: #161b22;
+      border: 1px solid #21262d; border-radius: 5px; overflow: hidden;
+    }
+    .bar .zone-near {           /* 한계 근접 구간 (양끝 10%) */
+      position: absolute; top: 0; bottom: 0; width: 10%;
+      background: rgba(210,153,34,.14);
+    }
+    .bar .zone-near.l { left: 0; } .bar .zone-near.r { right: 0; }
+    .bar .center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+                   background: #30363d; }
+    .bar .fill {   /* 중립(가운데)에서 현재값까지 채움 */
+      position: absolute; top: 3px; bottom: 3px; background: #1f6feb; border-radius: 3px;
+      transition: left .08s linear, width .08s linear, background .15s;
+    }
+    .bar .target { position: absolute; top: 0; bottom: 0; width: 2px;
+                   background: #8b949e; opacity: .8; }
+    .bar.near .fill  { background: #d29922; }
+    .bar.limit .fill { background: #f85149; }
+    .bar .lbl { position: absolute; top: 4px; font-size: 10px; color: #6e7681;
+                font-variant-numeric: tabular-nums; }
+    .bar .lbl.l { left: 5px; } .bar .lbl.r { right: 5px; }
+
+    .reach { position: relative; height: 28px; background: #161b22;
+             border: 1px solid #21262d; border-radius: 5px; }
+    .reach .ok { position: absolute; top: 3px; bottom: 3px;
+                 background: rgba(63,185,80,.12); border-radius: 3px; }
+    .reach .cur { position: absolute; top: 0; bottom: 0; width: 3px; background: #1f6feb; }
+    .reach .cur.out { background: #f85149; }
+    .reach .lbl { position: absolute; top: 6px; font-size: 10px; color: #6e7681;
+                  font-variant-numeric: tabular-nums; }
+
+    #conn { padding: 8px 12px; border-radius: 6px; background: #161b22; font-size: 13px;
+            margin-bottom: 16px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+           background: #f85149; margin-right: 6px; vertical-align: middle; }
+    .dot.on { background: #3fb950; }
+    table.raw { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    table.raw td { padding: 3px 6px; border-bottom: 1px solid #21262d;
+                   font-variant-numeric: tabular-nums; }
+    table.raw td:first-child { color: #8b949e; width: 40%; }
+
+    #view3d { width: 100%; height: 420px; background: #0b0f14;
+              border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+    #view3d canvas { display: block; }
+    .hint { color: #6e7681; font-size: 11px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RPO Arm — 상태 대시보드</h1>
+  <div class="sub" id="robot-info">연결 대기 중…</div>
+
+  <div id="conn"><span class="dot" id="dot"></span><span id="conn-text">서버 연결 중…</span></div>
+
+  <div class="cards" id="cards"></div>
+
+  <h2>3D 뷰</h2>
+  <div id="view3d"></div>
+  <div class="hint">드래그=회전 · 휠=확대 · 우클릭드래그=이동 ·
+    <span id="meshmode"></span> ·
+    <button id="bodytoggle" style="padding:3px 12px;border-radius:6px;border:1px solid #30363d;
+      background:#21262d;color:#c9d1d9;cursor:pointer;font-size:12px">로봇 O</button>
+    <span id="bodynote" style="opacity:.7"></span></div>
+
+  <h2>관절 가동범위</h2>
+  <div id="joints"></div>
+
+  <h2>리치 (베이스 기준 거리)</h2>
+  <div class="reach" id="reach">
+    <div class="ok" id="reach-ok"></div>
+    <div class="cur" id="reach-cur"></div>
+    <div class="lbl" id="reach-lbl" style="left:8px">—</div>
+  </div>
+
+  <h2>상세</h2>
+  <table class="raw" id="raw"></table>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "/vendor/three.module.js" } }
+</script>
+<script type="module">
+"use strict";
+
+import * as THREE from "three";
+import { OrbitControls } from "/vendor/OrbitControls.js";
+import { RobotView, addLights } from "/robot_view.js";
+
+// ── 3D 뷰 ────────────────────────────────────────────────────────────
+// VR 화면과 같은 RobotView 를 쓴다. 한쪽만 고쳐져 서로 다르게 보이는 일을 막는다.
+const host = document.getElementById("view3d");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+host.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f14);
+addLights(scene);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 50);
+camera.position.set(0.75, 0.55, 0.75);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.25, 0);
+controls.enableDamping = true;
+
+// Mac 은 GPU 여유가 있으니 실제 형상을 기본으로 쓴다.
+// ?mesh=0 으로 박스 모드로 되돌릴 수 있다 (형상이 이상할 때 구조 확인용).
+const useMeshes = new URLSearchParams(location.search).get("mesh") !== "0";
+const robotView = new RobotView(scene, { useMeshes });
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+// ── 로봇(본체) O/X 모드 ──────────────────────────────────────────────
+//   O = 차체 위에 얹힌 실제 모습 (바닥이 진짜 바닥, 팔이 184mm 위)
+//   X = 팔만 (base_link 가 원점) — 지금까지 보던 화면
+//   ?body=1 로 켠 채로 시작할 수 있다.
+let bodyOn = new URLSearchParams(location.search).get("body") === "1";
+const bodyBtn = document.getElementById("bodytoggle");
+const bodyNote = document.getElementById("bodynote");
+
+async function applyBody() {
+  if (bodyOn) {
+    const ok = await robotView.loadBody();
+    if (!ok) {
+      bodyOn = false;
+      bodyNote.textContent = "본체 형상 없음 (09_body_visual.py 를 먼저 실행)";
+    } else {
+      bodyNote.textContent = "차체 기준 · 바닥 z=0";
+    }
+  } else {
+    bodyNote.textContent = "";
+  }
+  robotView.setBodyVisible(bodyOn);
+  bodyBtn.textContent = bodyOn ? "로봇 O" : "로봇 X";
+  bodyBtn.style.background = bodyOn ? "#1f6feb" : "#21262d";
+}
+bodyBtn.onclick = () => { bodyOn = !bodyOn; applyBody(); };
+applyBody();
+
+document.getElementById("meshmode").innerHTML = useMeshes
+  ? '실제 형상 (<a href="?mesh=0" style="color:#58a6ff">박스로 보기</a>)'
+  : '박스 (<a href="?" style="color:#58a6ff">실제 형상으로 보기</a>)';
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+const WS_URL = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;
+let socket = null, lastMsg = 0;
+
+const $ = (id) => document.getElementById(id);
+
+function connect() {
+  socket = new WebSocket(WS_URL);
+  socket.onopen  = () => { $("dot").classList.add("on"); $("conn-text").textContent = "서버 연결됨"; };
+  socket.onclose = () => {
+    $("dot").classList.remove("on");
+    $("conn-text").textContent = "연결 끊김 — 3초 후 재시도";
+    setTimeout(connect, 3000);
+  };
+  socket.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "state") { lastMsg = performance.now(); render(msg.data); }
+  };
+}
+connect();
+
+// WebSocket 이 붙기 전에도 화면이 비지 않도록 첫 상태는 HTTP 로 즉시 받아 그린다.
+fetch("/state").then(r => r.json()).then(d => { if (d && d.links) render(d); })
+               .catch(() => {});
+
+setInterval(() => {
+  if (lastMsg && performance.now() - lastMsg > 2000) {
+    $("conn-text").textContent = "제어 루프에서 상태가 안 옵니다 (2초 이상)";
+    $("dot").classList.remove("on");
+  }
+}, 1000);
+
+function card(k, v, cls) {
+  return `<div class="card ${cls || ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+}
+
+function render(s) {
+  robotView.update(s);
+  if (s.robot) {
+    $("robot-info").textContent =
+      `${s.robot.name} · ${s.robot.dof}-DOF · EE=${s.robot.ee_frame} · 스케일 ${s.robot.scale.toFixed(3)}`;
+    // 위치 자유도가 모자란 팔은 안팎으로 밀어도 안 움직인다. 고장으로 오해하기
+    // 쉬우므로 눈에 띄게 알린다.
+    const rank = s.robot.position_rank;
+    let warn = $("rank-warn");
+    if (rank !== undefined && rank < 3) {
+      if (!warn) {
+        warn = document.createElement("div");
+        warn.id = "rank-warn";
+        warn.style.cssText = "background:#3d2317;border:1px solid #d2691e;color:#ffb787;" +
+          "padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;line-height:1.6";
+        $("robot-info").after(warn);
+      }
+      warn.innerHTML = `⚠️ <b>위치 자유도 ${rank}/3</b> — 손끝이 곡면 위에서만 움직입니다.<br>` +
+        "가리키는 방향 바꾸기는 정상 동작하고, <b>안팎으로 밀고 당기면 반응이 없습니다</b> (고장 아님).";
+    } else if (warn) {
+      warn.remove();
+    }
+  }
+
+  // ── 지금 무엇을 움직이나 ────────────────────────────────────────
+  // 실물 갈래와 Isaac 갈래를 동시에 띄워두고 주소로 골라 들어가므로,
+  // 어느 쪽에 붙었는지가 화면에 없으면 사람이 헷갈린다.
+  let rrow = $("receiver-row");
+  if (s.receiver) {
+    if (!rrow) {
+      rrow = document.createElement("div");
+      rrow.id = "receiver-row";
+      rrow.style.cssText = "padding:8px 14px;border-radius:8px;margin-bottom:10px;" +
+        "font-size:13px;border:1px solid;font-weight:600";
+      $("robot-info").after(rrow);
+    }
+    const real = s.receiver.kind === "real";
+    rrow.style.background = real ? "#3d2317" : "#161b22";
+    rrow.style.borderColor = real ? "#d2691e" : "#30363d";
+    rrow.style.color = real ? "#ffb787" : "#8b949e";
+    // 라벨에 이미 "실물 젯슨" / "Isaac Sim" 이 들어있다. 접두사에 또 붙이면
+    // "실물 실물 젯슨" 이 된다.
+    rrow.textContent = (real ? "● " : "○ ") + s.receiver.label +
+                       `   [프로파일 ${s.receiver.profile}]`;
+  } else if (rrow) {
+    rrow.remove();
+  }
+
+  // ── 모터 링크 ──────────────────────────────────────────────────
+  // 헤드셋을 쓰면 Mac 화면을 못 보므로 여기가 사람이 링크를 확인하는 유일한 곳이다.
+  let mrow = $("motor-row");
+  if (s.motors) {
+    const m = s.motors;
+    if (!mrow) {
+      mrow = document.createElement("div");
+      mrow.id = "motor-row";
+      mrow.style.cssText = "padding:10px 14px;border-radius:8px;margin-bottom:14px;" +
+        "font-size:13px;line-height:1.7;border:1px solid";
+      $("robot-info").after(mrow);
+    }
+    const trip = m.state === "TRIP";
+    const bad = trip || !m.link_ok;
+    mrow.style.background = trip ? "#3d1717" : (bad ? "#3d2317" : "#12261a");
+    mrow.style.borderColor = trip ? "#d24141" : (bad ? "#d2691e" : "#2ea043");
+    mrow.style.color = trip ? "#ff9b9b" : (bad ? "#ffb787" : "#7ee2a8");
+    const age = m.link_age_ms === null ? "—" : `${m.link_age_ms.toFixed(0)}ms`;
+    const rx = m.rx_age_ms === null ? "—" : `${m.rx_age_ms.toFixed(0)}ms`;
+    const temps = m.temp ? m.temp.map(v => (v === null || Number.isNaN(v)) ? "—"
+                                                                          : v.toFixed(0)).join(" / ") : "—";
+    mrow.innerHTML =
+      `<b>모터 ${m.state || "연결 대기"}</b> · 지령 ${m.mode} · ${m.addr || "주소 탐색 중"}` +
+      `<br>링크 ${m.link_ok ? "정상" : "⚠️ 끊김"} (수신 ${age} 전) · 젯슨측 ${m.link || "—"} · 지령나이 ${rx}` +
+      (m.await_rearm ? `<br><b>⏸ 재무장 필요</b> — 클러치를 다시 잡아야 움직입니다` : "") +
+      ` · 소프트스타트 ${m.soft_start === null ? "—" : (m.soft_start * 100).toFixed(0) + "%"}` +
+      `<br>온도 ${temps} °C · 에러 ${m.err ? m.err.join(",") : "—"} · 수신 ${m.rx_count}패킷` +
+      (trip ? `<br><b>⚠️ TRIP: ${m.trip || ""}</b> — 해제해야 다시 움직입니다` +
+              `<br><button id="clear-trip" style="margin-top:8px;padding:7px 16px;` +
+              `border:0;border-radius:6px;font-size:13px"></button>` +
+              `<span id="clear-note" style="margin-left:10px;font-size:12px;opacity:.85"></span>`
+            : "");
+    // ★ 해제는 사람이 이 버튼을 눌러야만 일어난다. 자동 재시도 금지.
+    //   해제 후에는 IDLE 로 가고, 다시 움직이려면 클러치를 새로 잡아야 한다.
+    const btn = $("clear-trip"), note = $("clear-note");
+    if (btn) {
+      // ★ 링크가 끊긴 동안 누르면 요청이 전달되지 않는다. 조용히 실패하면
+      //   사람은 눌렀다고 믿는다. 그래서 상태를 그대로 보여준다.
+      const sendable = m.link_ok;
+      btn.disabled = !sendable || m.clear_pending;
+      btn.style.background = sendable ? "#d24141" : "#4a4a4a";
+      btn.style.color = sendable ? "#fff" : "#999";
+      btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
+      btn.textContent = m.clear_pending ? "해제 요청 중…" : "트립 해제";
+      if (note) {
+        note.textContent = !sendable
+          ? "링크가 끊겨 있어 지금은 전달되지 않습니다. 연결되면 눌러주세요."
+          : (m.clear_pending ? "" : "누르면 IDLE 로 돌아갑니다. 다시 움직이려면 클러치를 새로 잡으세요.");
+      }
+      btn.onclick = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "cmd", data: { action: "clear_trip" } }));
+        }
+      };
+    }
+  } else if (mrow) {
+    mrow.remove();
+  }
+
+  // ── 요약 카드 ──────────────────────────────────────────────────
+  const nNear = s.n_near || 0;
+  const cards = [
+    // ★ 세션이 끊긴 줄 모르고 계속 손을 흔드는 것을 막는다. 헤드셋을 벗거나
+    //   슬립에 들면 WebXR 세션이 끊기는데, 예전에는 화면에도 로그에도 아무
+    //   표시가 없어서 "멀쩡해 보이는데 안 움직인다" 로만 보였다 (20_ISAAC M-11).
+    card("Quest", { ok: "● 연결됨", lost: "⚠ 끊김 — Start XR 다시",
+                    waiting: "○ 대기 중" }[s.quest] || "—",
+         s.quest === "ok" ? "good" : s.quest === "lost" ? "bad" : ""),
+    card("클러치", s.engaged ? "● 활성" : "○ 대기", s.engaged ? "good" : ""),
+    card("한계 근접 관절", `${nNear} / ${(s.joints || []).length}`,
+         nNear > 0 ? "warn" : "good"),
+    card("워크스페이스", s.clamped ? "클램프" : "정상", s.clamped ? "warn" : "good"),
+    card("IK 오차", s.ik_err_mm != null ? `${s.ik_err_mm.toFixed(2)} mm` : "—",
+         s.ik_err_mm > 5 ? "warn" : "good"),
+    card("루프", s.loop_hz != null ? `${s.loop_hz.toFixed(0)} Hz` : "—",
+         s.loop_hz != null && s.loop_hz < 20 ? "warn" : ""),
+    card("트리거", s.trigger != null ? s.trigger.toFixed(2) : "—", ""),
+    card("좌표 매핑", s.mapping
+         ? `yaw ${s.mapping.yaw_deg.toFixed(0)}° ${s.mapping.mirror ? "· 미러" : ""}`
+         : "—", s.mapping && s.mapping.mirror ? "warn" : ""),
+    ...(s.mapping && s.mapping.chirality_warning
+        ? [card("⚠ 거울상", "오른손이 왼손으로 보임", "bad")] : []),
+  ];
+  $("cards").innerHTML = cards.join("");
+
+  // ── 관절 막대 ──────────────────────────────────────────────────
+  const html = (s.joints || []).map((j) => {
+    // norm: -1(하한) ~ 0(중립) ~ +1(상한)
+    const pct = (j.norm * 50) + 50;
+    const left = Math.min(50, pct), width = Math.abs(pct - 50);
+    const tgt = j.target_deg != null
+      ? `<div class="target" style="left:${((j.target_deg - (j.lower_deg + j.upper_deg) / 2) /
+           ((j.upper_deg - j.lower_deg) / 2) * 50 + 50).toFixed(2)}%"></div>` : "";
+    const pctRange = (Math.abs(j.norm) * 100).toFixed(0);
+    return `
+      <div class="joint">
+        <div class="joint-head">
+          <span class="joint-name">${j.name}</span>
+          <span class="joint-val"><b>${j.deg.toFixed(1)}°</b> &nbsp; 가동범위의 ${pctRange}%</span>
+        </div>
+        <div class="bar ${j.status === "ok" ? "" : j.status}">
+          <div class="zone-near l"></div><div class="zone-near r"></div>
+          <div class="center"></div>
+          <div class="fill" style="left:${left}%; width:${width}%"></div>
+          ${tgt}
+          <div class="lbl l">${j.lower_deg.toFixed(0)}°</div>
+          <div class="lbl r">${j.upper_deg.toFixed(0)}°</div>
+        </div>
+      </div>`;
+  }).join("");
+  $("joints").innerHTML = html;
+
+  // ── 리치 막대 ──────────────────────────────────────────────────
+  if (s.reach) {
+    const { current, min, max, span_max } = s.reach;
+    const scale = span_max || (max * 1.2);
+    $("reach-ok").style.left = `${(min / scale * 100).toFixed(2)}%`;
+    $("reach-ok").style.width = `${((max - min) / scale * 100).toFixed(2)}%`;
+    const cur = $("reach-cur");
+    cur.style.left = `${Math.min(99.5, current / scale * 100).toFixed(2)}%`;
+    cur.classList.toggle("out", current < min - 1e-6 || current > max + 1e-6);
+    $("reach-lbl").textContent =
+      `${current.toFixed(3)} m   (허용 ${min.toFixed(3)} ~ ${max.toFixed(3)})`;
+  }
+
+  // ── 상세 표 ────────────────────────────────────────────────────
+  const rows = [];
+  if (s.ee) {
+    rows.push(["EE 실제 (m)", `${s.ee.x.toFixed(4)}  ${s.ee.y.toFixed(4)}  ${s.ee.z.toFixed(4)}`]);
+  }
+  if (s.target) {
+    rows.push(["EE 목표 (m)", `${s.target.x.toFixed(4)}  ${s.target.y.toFixed(4)}  ${s.target.z.toFixed(4)}`]);
+  }
+  if (s.wrist_roll_deg != null) rows.push(["손목 롤", `${s.wrist_roll_deg.toFixed(1)}°`]);
+  if (s.ik_ms != null) rows.push(["IK 계산 시간", `${s.ik_ms.toFixed(3)} ms`]);
+  if (s.xr_hz != null) rows.push(["Quest 입력", `${s.xr_hz.toFixed(1)} Hz`]);
+  $("raw").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+}
+</script>
+</body>
+</html>

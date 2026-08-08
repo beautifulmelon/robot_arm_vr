@@ -1,0 +1,185 @@
+vr시뮬레이션 시작
+ssh 100.93.186.122 'cd ~/projects/isaac-sim && DISPLAY=:0 setsid nohup \
+  .venv/bin/python -u scripts/10_vr_bridge.py > /tmp/bridge.log 2>&1 < /dev/null &'
+
+텔레옵 시작
+cd /Users/jjh/Desktop/robot_arm_vr
+./run.sh --motors jetson --profile isaac --jetson-host 100.93.186.122
+
+
+끄기
+pkill -f 05_teleop_sim                              # Mac 텔레옵
+ssh 100.93.186.122 'pkill -f 10_vr_bridge'          # 브릿지
+
+
+
+로봇팔 서버 열기
+cd /Users/jjh/Desktop/robot_arm_vr
+./run.sh
+로봇팔 서버 확인
+lsof -nP -iTCP:4443 -sTCP:LISTEN     # 떠 있는지
+ipconfig getifaddr en0                # 현재 IP
+
+
+가짜젯슨 접속해보기
+# 터미널 1 — 가짜 젯슨
+.venv/bin/python scripts/07_fake_jetson.py
+
+# 터미널 2 — 텔레옵
+./run.sh --temp --motors jetson
+
+
+════════════════════════════════════════════════════════════════════
+ ★ VR → Isaac Sim (집 리눅스) — 이게 지금 쓰는 것
+════════════════════════════════════════════════════════════════════
+
+ 순서:  ① 브릿지(집 리눅스)  →  ② 텔레옵(Mac)  →  ③ 헤드셋
+ 끄기:  Isaac 창 닫기  +  Mac 터미널 Ctrl+C
+
+--------------------------------------------------------------------
+ ① Isaac Sim 브릿지 — Mac 터미널에 그대로 붙여넣기
+--------------------------------------------------------------------
+
+ssh 100.93.186.122 'cd ~/projects/isaac-sim && DISPLAY=:0 setsid nohup \
+  .venv/bin/python -u scripts/10_vr_bridge.py > /tmp/bridge.log 2>&1 < /dev/null &'
+
+ 부팅 30~60초. 준비되면 RustDesk 화면에 Isaac 창이 뜹니다.
+
+ 확인:
+   ssh 100.93.186.122 'grep -a "로봇\]\|UDP\]\|기다립니다" /tmp/bridge.log'
+
+ 정상이면:
+   [로봇] 17 DOF — 팔 5 / 손 12
+   [UDP] 지령 수신 :5015   상태 송신 :5016
+   [식별자] robot="robot_arm.urdf"  (State 정식 필드)
+   Mac 을 기다립니다.
+
+ ※ DISPLAY=:0 없으면 창이 안 뜹니다.  -u 없으면 로그가 안 보입니다.
+ ※ 포트 플래그 불필요 (기본값 5015/5016).
+
+--------------------------------------------------------------------
+ ② Mac 텔레옵
+--------------------------------------------------------------------
+
+cd /Users/jjh/Desktop/robot_arm_vr
+./run.sh --motors jetson --profile isaac --jetson-host 100.93.186.122
+
+ ★ --profile isaac 필수. 빠뜨리면 실물 젯슨 갈래를 밀어냅니다.
+ ★ 웹 포트는 4443 이 아니라 4453.
+
+--------------------------------------------------------------------
+ ③ 헤드셋 + 화면
+--------------------------------------------------------------------
+
+ 헤드셋    https://<터미널에 찍힌 IP>:4453  →  [Start XR]
+ 화면      RustDesk → 집 리눅스 Isaac Sim 창
+ 대시보드  https://<IP>:4453/dashboard   (Quest 카드 · 관절 · 링크 · 트립)
+
+ 조작
+   오른손 Grip 꾹    팔 추종 (떼면 정지, 다시 잡으면 이어서)
+   오른손 Trigger    손 쥐기 0~1 → 서보각 8개
+   오른손 썸스틱 X   손목 롤 (-190° ~ +166°, 양방향)
+   A / B             홈 복귀 / 클러치 기준 리셋
+   왼손 Y            yaw +90° (좌우가 안 맞을 때)
+   왼손 Trigger      트립 해제
+
+--------------------------------------------------------------------
+ 끄기
+--------------------------------------------------------------------
+
+ 브릿지    RustDesk 에서 **Isaac Sim 창을 닫으면** 종료됩니다. 이게 정상입니다.
+           터미널에 종료 배너가 찍힙니다.
+           (명령으로 끄려면: ssh 100.93.186.122 'pkill -f 10_vr_bridge')
+ 텔레옵    Mac 터미널에서 Ctrl+C
+
+ ※ 창을 닫으면 UDP 수신이 멈춥니다. 조종 중에 실수로 닫으면 "멀쩡해 보이는데
+   아무것도 안 움직이는" 상태가 됩니다. 그때는 ①부터 다시 하면 됩니다.
+
+--------------------------------------------------------------------
+ 안 움직일 때 — 위에서부터
+--------------------------------------------------------------------
+
+ 1. 브릿지가 살아있나
+      ssh 100.93.186.122 'ss -uln | grep 5015'        # 안 나오면 죽은 것
+      ssh 100.93.186.122 'tail -12 /tmp/bridge.log'   # 종료 사유가 찍힙니다
+
+ 2. Mac 텔레옵이 살아있나
+      pgrep -f 05_teleop_sim
+
+ 3. 막힘/트립/Quest 를 한 번에
+      curl -sk https://127.0.0.1:4453/state | python3 -m json.tool | \
+        grep -E 'dof_mismatch|"state"|"link"|"trip"|"quest"|await_rearm'
+
+      dof_mismatch : null 이어야 정상
+      quest        : ok / lost / waiting
+      trip         : null 이어야 정상 (아니면 대시보드에서 [트립 해제])
+
+ 흔한 원인
+   · Isaac 창을 닫아서 브릿지가 죽음        ← 제일 흔함
+   · 브릿지가 TRIP        → 대시보드 [트립 해제] 또는 왼손 Trigger
+   · --profile isaac 누락 → 5005 로 나가서 안 붙음
+   · IP 변경             → 터미널에 찍힌 줄이 항상 정답
+
+ ※ 집 리눅스에서 Isaac 담당(다른 클로드)이 테스트를 돌리고 있으면 5015 가
+   이미 점유돼 브릿지가 조용히 못 뜹니다. 위 1번에서 로그가 배너 없이
+   끝나 있으면 이 경우입니다. 잠시 뒤 다시 띄우면 됩니다.
+
+════════════════════════════════════════════════════════════════════
+
+
+지금 당장 쓸 명령
+
+cd /Users/jjh/Desktop/robot_arm_vr
+① 그냥 조종해보기 — 터미널 1개
+
+./run.sh --temp
+가장 간단합니다. 모터 없이 시뮬만 돕니다. 지금 하고 싶은 게 "VR로 조종되는지 보기"라면 이거 하나면 됩니다.
+
+② 모터까지 붙여서 연습 — 터미널 2개
+
+# 터미널 1
+.venv/bin/python scripts/07_fake_jetson.py --motor-hz 500
+
+# 터미널 2
+./run.sh --temp --motors jetson
+터미널 1이 가짜 젯슨입니다. 실물 젯슨이 하는 일(안전계층·워치독·모터 구동)을 똑같이 하되 CAN 대신 가상 모터를 돌립니다. 실물이 오면 터미널 1만 없어지고 터미널 2는 그대로입니다.
+
+③ 실물 젯슨이 붙으면
+
+./run.sh --temp --motors jetson --jetson-host 192.168.55.1
+터미널 하나로 돌아갑니다. 주소만 추가하면 끝입니다.
+
+접속
+터미널에 이렇게 뜹니다:
+
+
+Quest 접속  : https://10.71.87.59:4443
+대시보드    : https://10.71.87.59:4443/dashboard
+누가	어디로
+조종자 (헤드셋)	Quest 브라우저 → 그 주소 → [Start XR]
+감시자 (Mac)	브라우저 → /dashboard
+IP는 네트워크가 바뀔 때마다 달라집니다. 터미널에 찍힌 줄이 항상 정답입니다. 인증서 경고는 [고급] → [계속 진행].
+
+끄기: 각 터미널에서 Ctrl+C
+
+어떤 코드가 뭔지
+파일	정체
+run.sh	실행하는 건 이것 하나뿐. 안에서 05_teleop_sim.py를 부릅니다
+scripts/05_teleop_sim.py	텔레옵 본체 — Quest 입력 → 좌표변환 → 클러치 → IK → 모터
+scripts/07_fake_jetson.py	가짜 젯슨. 실물이 오면 안 씁니다
+scripts/08_fake_mac.py	가짜 Mac. Isaac 쪽 Claude 것입니다
+config/arm_temp.json	임시 3-DOF 팔 설정 (--temp가 이걸 씁니다)
+config/arm.json	전체 5-DOF 팔 설정 (--temp 없을 때)
+scripts/01~04, 06은 검증 도구라 평소엔 안 씁니다. 06_setup_urdf.py만 URDF가 바뀌었을 때 한 번 돌립니다.
+
+자주 쓰는 것 몇 개 더
+
+./run.sh                          # 전체 5-DOF 팔
+./run.sh --temp --profile isaac   # Isaac 갈래 (실물과 동시 실행 가능)
+./run.sh --base-yaw 90            # 좌우가 안 맞을 때
+./run.sh --help                   # 전체 옵션
+가짜 젯슨에 상황을 주입해서 안전장치를 볼 수도 있습니다:
+
+
+.venv/bin/python scripts/07_fake_jetson.py --drop 0.3        # 패킷 30% 손실
+.venv/bin/python scripts/07_fake_jetson.py --blackout 14 4   # 14초마다 4초 두절

@@ -1,0 +1,24 @@
+# 파이썬
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# ★ TLS 개인키 — 커밋하지 않는다.
+#   WebXR 은 HTTPS 가 필수라 자체서명 인증서를 쓰는데, certs.py 가 없으면
+#   자동으로 다시 만든다. 로컬 전용이라도 키를 저장소에 넣지 않는다.
+certs/*.pem
+# openssl.cnf 는 설정이라 남긴다 (비밀 아님)
+
+# 전달 묶음 — handoff/ 폴더에서 tar 로 다시 만든다 (합계 34MB)
+#   예:  tar -czf handoff_orientation.tar.gz -C handoff orientation
+*.tar.gz
+
+# 기록/로그
+*.log
+data/
+outputs/

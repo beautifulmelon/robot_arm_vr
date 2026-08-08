@@ -1,0 +1,1261 @@
+<?xml version="1.0"?>
+<robot name="body_with_arm_nomimic">
+  <!-- 에코로버 본체. Fusion 조립본에서 본체만 추출. -->
+  <!-- body_base 원점 = 바닥 접지면 × 바퀴 접지점 중심. +X 앞 / +Z 위. -->
+  <link name="body_base">
+    <inertial>
+      <origin xyz="-0.061567948 0.000033788 0.298421078" rpy="0 0 0" />
+      <mass value="81.615264" />
+      <inertia ixx="7.741919425" ixy="-0.000045293" ixz="1.922939746" iyy="9.914031009" iyz="0.000923786" izz="7.474368729" />
+    </inertial>
+    <visual>
+      <origin xyz="0.279575 -0.190875 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x200_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.242374885 -0.220014886 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.200000008 0.04 0.039999998" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 0.249125007 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x200_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.242374885 0.219985121 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.200000008 0.04 0.039999998" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.362374887 -0.240014887 0.16771" rpy="-1.570796327 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x480_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.362374887 -0.000014887 0.16771" rpy="-1.570796327 -1.570796327 0" />
+      <geometry>
+        <box size="0.04 0.04 0.48" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.220014887 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.097625113 -0.220014887 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.21998512 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.097625113 0.21998512 0.16771" rpy="0 1.570796306 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.122374887 0.21998512 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.122374887 0.21998512 0.29271" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.122374887 -0.220014887 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.122374887 -0.220014887 0.29271" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 -0.220014887 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x600_1_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.10071012 -0.003099878 0.44771" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.479830017 0.479829987 0.6" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 0.21998512 0.14771" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x600_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.09921012 0.22148512 0.44771" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.043 0.476829987 0.6" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.326374887 -0.207514887 0.145025" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/front_wheel_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.297624887 -0.207514887 0.073775" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.064 0.1525 0.1475" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.326374887 0.207485113 0.145025" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/front_wheel_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.297624887 0.207485113 0.073775" rpy="0 0 1.570796327" />
+      <geometry>
+        <box size="0.064 0.1525 0.1475" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.317625113 0.19998512 0.167710001" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.317625113 -0.00001488 0.167710001" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.15798512 0.145025001" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/wheel_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.297639029 0.15798512 0.07552848" rpy="0 0 0" />
+      <geometry>
+        <box size="0.138972168 0.085 0.144993042" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.15801488 0.145025001" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/wheel_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.297639029 -0.15801488 0.07552848" rpy="0 0 0" />
+      <geometry>
+        <box size="0.138972168 0.085 0.144993042" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.262374887 0.199985113 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/40x40x400_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.262374887 -0.000014887 0.16771" rpy="1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.4" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.047743849 -0.220014887 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.192743849 -0.220014887 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.047743849 0.21998512 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/40x40x290_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.192743849 0.21998512 0.76771" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.04 0.04 0.29" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 -0.240014887 0.318693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.277625113 -0.220014887 0.298693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.031743849 0.04998512 0.76091" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/logitech_c920_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.043743849 -0.000014881 0.77441" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <box size="0.093986082 0.027 0.024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/top_cover_front_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.170243848 -0.000014879 0.76771" rpy="0 0 0" />
+      <geometry>
+        <box size="0.253 0.486399998 0.046400024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/top_cover_back_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.319243848 -0.000014879 0.76771" rpy="0 0 0" />
+      <geometry>
+        <box size="0.045 0.486399998 0.046400024" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.096243849 -0.016970443 0.74441" rpy="1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/logitech_c920arm_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.068118849 0.000018725 0.754285" rpy="1.570796327 0 1.570796327" />
+      <geometry>
+        <box size="0.044067211 0.02175 0.06225" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.560401564 -0.221816625 0.037320844" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/2d_lidar_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.17241356 -0.000014882 0.810410016" rpy="0 0 0" />
+      <geometry>
+        <box size="0.076 0.075998627 0.041" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.297625113 0.19998512 0.318693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.277625113 0.21998512 0.298693586" rpy="-1.570796327 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.102374887 0.23998512 0.318693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.082374887 0.21998512 0.298693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.102374887 -0.200016049 0.318693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/bracket_4040_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.082374887 -0.220016049 0.298693586" rpy="-1.570796327 0 3.141592654" />
+      <geometry>
+        <box size="0.04 0.04 0.04" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/body10.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.096125127 -0.000014889 0.323701791" rpy="0 0 0" />
+      <geometry>
+        <box size="0.483000015 0.479999992 0.231983582" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.279575 -0.290875 0.06771" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/body11.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.012552544 -0.000014881 0.14621" rpy="0 0 0" />
+      <geometry>
+        <box size="0.516194862 0.473660011 0.003" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="arm_mount" />
+  <joint name="arm_mount_joint" type="fixed">
+    <!-- 팔 base_link(=joint1 원점)이 놓이는 자리 -->
+    <parent link="body_base" />
+    <child link="arm_mount" />
+    <origin xyz="0.314375 -0.000015 0.18446" rpy="0 0 0" />
+  </joint>
+  <link name="body_camera_mount" />
+  <joint name="body_camera_mount_joint" type="fixed">
+    <!-- 후상방 카메라(Logitech C920). Fusion 조인트오리진 cam2 에서 가져옴. ROS optical 규약: +Z=광축(보는 방향) +Y=영상아래 +X=영상오른쪽 -->
+    <parent link="body_base" />
+    <child link="body_camera_mount" />
+    <origin xyz="-0.032744 -0.000015 0.77441" rpy="-1.570796327 0 -1.570796327" />
+  </joint>
+  <!-- ===== 팔 + 손 (기존 검증본 그대로) ===== -->
+  <joint name="arm_attach_joint" type="fixed">
+    <parent link="arm_mount" />
+    <child link="base_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.000066378 -0.000000013 -0.024760805" rpy="0 0 0" />
+      <mass value="0.440825314" />
+      <inertia ixx="0.000262422" ixy="-0.000000032" ixz="-0.000000869" iyy="0.000220047" iyz="0" izz="0.000272651" />
+    </inertial>
+    <visual>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.207675861 -0.0605 -0.00175" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/arm/base_link__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link1">
+    <inertial>
+      <origin xyz="0.005744197 -0.000000015 0.054184459" rpy="0 0 0" />
+      <mass value="0.400393219" />
+      <inertia ixx="0.000192025" ixy="0" ixz="-0.000008128" iyy="0.000208122" iyz="0.000000049" izz="0.000176199" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__06_body7.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.000004695 -0.183594823 0.086759746" rpy="0 -1.570796327 0" />
+      <geometry>
+        <mesh filename="meshes/arm/link1__06_body7.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link2">
+    <inertial>
+      <origin xyz="0.003773258 0.000017446 0.024109816" rpy="0 0 0" />
+      <mass value="0.023525669" />
+      <inertia ixx="0.000012513" ixy="0.000000006" ixz="-0.000004831" iyy="0.000015648" iyz="0.000000001" izz="0.00000781" />
+    </inertial>
+    <visual>
+      <origin xyz="0.019995305 0.030759746 0.183594823" rpy="-1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/arm/link2__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.019995305 0.030759746 0.183594823" rpy="-1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/arm/link2__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link3">
+    <inertial>
+      <origin xyz="-0.0025582 0.000004867 0.105521936" rpy="0 0 0" />
+      <mass value="0.882204789" />
+      <inertia ixx="0.005679247" ixy="-0.000000352" ixz="0.00019557" iyy="0.005703841" iyz="0.000000325" izz="0.000418932" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__03_body4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__03_body4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__04_body5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__04_body5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__06_body7.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 -3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link3__06_body7.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link4">
+    <inertial>
+      <origin xyz="-0.003773258 0.000017446 0.024109816" rpy="0 0 0" />
+      <mass value="0.023523753" />
+      <inertia ixx="0.000012512" ixy="-0.000000006" ixz="0.000004831" iyy="0.000015647" iyz="0.000000001" izz="0.00000781" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.019995305 0.030759746 0.183594823" rpy="-1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/arm/link4__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.019995305 0.030759746 0.183594823" rpy="-1.570796327 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/arm/link4__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link5">
+    <inertial>
+      <origin xyz="-0.000002534 -0.000848226 0.053409138" rpy="0 0 0" />
+      <mass value="0.547938612" />
+      <inertia ixx="0.001644622" ixy="-0.00000062" ixz="0.0000021" iyy="0.001623698" iyz="0.000053902" izz="0.000285062" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__00_body1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__01_body2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__02_body3.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__03_body4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__03_body4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__04_body1_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__04_body1_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.570796327 0 3.141592654" />
+      <geometry>
+        <mesh filename="meshes/arm/link5__05_body6.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint1" type="revolute">
+    <parent link="base_link" />
+    <child link="link1" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-3.106686069" upper="3.106686069" effort="27.0" velocity="3.77" />
+  </joint>
+  <joint name="joint2" type="revolute">
+    <parent link="link1" />
+    <child link="link2" />
+    <origin xyz="-0.02 0 0.056" rpy="0 0 0" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-1.745329252" upper="1.745329252" effort="27.0" velocity="3.77" />
+  </joint>
+  <joint name="joint3" type="revolute">
+    <parent link="link2" />
+    <child link="link3" />
+    <origin xyz="0.02 0 0.05" rpy="0 0 0" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-3.106686069" upper="3.106686069" effort="27.0" velocity="3.77" />
+  </joint>
+  <joint name="joint4" type="revolute">
+    <parent link="link3" />
+    <child link="link4" />
+    <origin xyz="0.02 0 0.18875" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+    <limit lower="-2.094395102" upper="2.094395102" effort="27.0" velocity="3.77" />
+  </joint>
+  <joint name="joint5" type="revolute">
+    <parent link="link4" />
+    <child link="link5" />
+    <origin xyz="-0.02 0 0.05" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.106686069" upper="3.106686069" effort="27.0" velocity="3.77" />
+  </joint>
+  <link name="camera_mount" />
+  <joint name="camera_mount_joint" type="fixed">
+    <parent link="link5" />
+    <child link="camera_mount" />
+    <origin xyz="-0.002211756 -0.071690174 0.169716543" rpy="1.570796327 0 -3.141592654" />
+  </joint>
+  <link name="hand_mount" />
+  <joint name="hand_mount_joint" type="fixed">
+    <parent link="link5" />
+    <child link="hand_mount" />
+    <origin xyz="0 0 0.18850348" rpy="-1.570796327 0 0" />
+  </joint>
+  <joint name="hand_attach_joint" type="fixed">
+    <parent link="hand_mount" />
+    <child link="hand_base" />
+    <origin xyz="0 0 0" rpy="1.570796327 -1.570796327 0" />
+  </joint>
+  <link name="hand_base">
+    <inertial>
+      <origin xyz="-0.011 -0.005 0.07" rpy="0 0 0" />
+      <mass value="0.3295916" />
+      <inertia ixx="0.000142823" ixy="0" ixz="0" iyy="0.00026642" iyz="0" izz="0.000321352" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.022075 0.03055 0.0698" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_1.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/r_hand_plate.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/r_palm_shell.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/r_top_shell.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.00443741 0.0191037 0.019125" rpy="-1.570796327 0 -1.221730912" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 -0.0083 0.0961543" rpy="1.570796327 0.104719794 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_2.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 -0.0405 0.0851417" rpy="1.570796327 0.235618532 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_2.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.015 -0.0083 0.0961543" rpy="-1.570796327 0.104719794 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.015 0.0245 0.1022" rpy="-1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.015 -0.0405 0.0851417" rpy="-1.570796327 0.235618532 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.025 -0.0083 0.0961543" rpy="1.570796327 0.104719794 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.0280778 0.0245 0.0297" rpy="3.141592654 0 1.919862841" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_2.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.022075 -0.0109301 0.0632994" rpy="0 -0.104719686 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.022075 0.01845 0.0698" rpy="0 0 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0109 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_2.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.022075 0.00110358 0.0645642" rpy="0 -0.104719686 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.022075 -0.0388192 0.0522246" rpy="0 -0.235619621 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 -0.0083 0.0961543" rpy="1.570796327 0.104719794 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_1.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.0280778 0.0245 0.0262" rpy="0 0 1.919862841" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.022075 -0.0270535 0.0550493" rpy="0 -0.235619621 1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.000298971 0.00773341 0.019125" rpy="-1.570796327 0 -1.221730912" />
+      <geometry>
+        <mesh filename="meshes/hand/scs0009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.025 0.0245 0.1022" rpy="1.570796327 0 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.025 -0.0405 0.0851417" rpy="1.570796327 0.235618532 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.0280778 0.0245 0.0162" rpy="3.141592654 0 1.919862841" />
+      <geometry>
+        <mesh filename="meshes/hand/bushing_0608_04.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.0115 -0.0405 0.0851417" rpy="1.570796327 0.235618532 -1.570796327" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_1.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.0280778 0.0245 0.0297" rpy="3.141592654 0 1.919862841" />
+      <geometry>
+        <mesh filename="meshes/hand/finger_frame_1.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.002815225 -0.006397964 0.03735" rpy="0 0 0" />
+      <geometry>
+        <box size="0.077600435 0.103272507 0.0653" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f1_gimbal">
+    <inertial>
+      <origin xyz="-0.000676814 0 0" rpy="0 0 0" />
+      <mass value="0.00201325" />
+      <inertia ixx="0.000000019" ixy="0" ixz="0" iyy="0.000000117" iyz="0" izz="0.000000121" />
+    </inertial>
+    <visual>
+      <origin xyz="0.003500004 0.000000002 0.000000001" rpy="1.570796452 -0.00395265 -1.570795668" />
+      <geometry>
+        <mesh filename="meshes/hand/gimbal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.001250004 0.000000002 0.000000001" rpy="0 0 0" />
+      <geometry>
+        <box size="0.021500005 0.009026013 0.010880985" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f1_proximal">
+    <inertial>
+      <origin xyz="0.010675653 0.005334966 0.025177397" rpy="0 0 0" />
+      <mass value="0.0101851" />
+      <inertia ixx="0.000002004" ixy="-0.000000003" ixz="-0.000000889" iyy="0.000002358" iyz="-0.000000005" izz="0.00000102" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.000000003 0.00514996 -0.000020356" rpy="1.025975155 -0.00395265 -1.570795668" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal_shell.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.000000003 0.005249959 -0.000020751" rpy="1.025975155 -0.00395265 -1.570795668" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.012812542 0.005266064 0.023971027" rpy="0 0 0" />
+      <geometry>
+        <box size="0.031713348 0.01676922 0.047646052" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f1_distal">
+    <inertial>
+      <origin xyz="0.014097084 0.004335017 0.008848352" rpy="0 0 0" />
+      <mass value="0.00540375" />
+      <inertia ixx="0.0000002" ixy="-0.000000001" ixz="-0.000000238" iyy="0.000000769" iyz="0" izz="0.000000712" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.046081521 0.004204703 -0.024110299" rpy="0.481755616 -0.00395265 -1.570795668" />
+      <geometry>
+        <mesh filename="meshes/hand/distal.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.046081521 0.004204703 -0.024110299" rpy="0.481755616 -0.00395265 -1.570795668" />
+      <geometry>
+        <mesh filename="meshes/hand/distal_shell.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.015021805 0.00434985 0.009293253" rpy="0 0 0" />
+      <geometry>
+        <box size="0.042903008 0.01851263 0.024612697" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="hand_f1_abduction" type="revolute">
+    <parent link="hand_base" />
+    <child link="hand_f1_gimbal" />
+    <origin xyz="-0.015000014 0.024499973 0.102199999" rpy="0 0 0" />
+    <axis xyz="-1 -0.000000662 -0.000000724" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-0.675442" upper="0.666716" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f1_flexion" type="revolute">
+    <parent link="hand_f1_gimbal" />
+    <child link="hand_f1_proximal" />
+    <origin xyz="0.003500024 -0.004999915 0.000019791" rpy="0 0 0" />
+    <axis xyz="-0.000000659 0.999992188 -0.00395264" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.076868" upper="0.771436" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f1_distal" type="revolute">
+    <parent link="hand_f1_proximal" />
+    <child link="hand_f1_distal" />
+    <origin xyz="0.026949788 0.000175797 0.044471092" rpy="0 0 0" />
+    <axis xyz="-0.000000659 0.999992188 -0.00395264" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.047577" upper="0.750452" effort="0.15" velocity="6.0" />
+  </joint>
+  <link name="hand_f2_gimbal">
+    <inertial>
+      <origin xyz="-0.000676814 0 0" rpy="0 0 0" />
+      <mass value="0.00201325" />
+      <inertia ixx="0.000000019" ixy="0" ixz="0" iyy="0.000000117" iyz="0" izz="0.000000121" />
+    </inertial>
+    <visual>
+      <origin xyz="0.003500004 0 0.000000003" rpy="1.570796869 0.100766667 -1.570796287" />
+      <geometry>
+        <mesh filename="meshes/hand/gimbal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.001250003 0 0.000000002" rpy="0 0 0" />
+      <geometry>
+        <box size="0.021500002 0.009613208 0.010879699" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f2_proximal">
+    <inertial>
+      <origin xyz="0.010675646 0.00267399 0.025597131" rpy="0 0 0" />
+      <mass value="0.0101851" />
+      <inertia ixx="0.000002004" ixy="0.00000009" ixz="-0.000000885" iyy="0.000002344" iyz="0.000000134" izz="0.000001034" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.005223369 0.00052813" rpy="1.025975571 0.100766667 -1.570796287" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0 0.005123876 0.000518071" rpy="1.025975571 0.100766667 -1.570796287" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal_shell.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.012812535 0.002229187 0.024069251" rpy="0 0 0" />
+      <geometry>
+        <box size="0.031713338 0.018507628 0.04827694" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f2_distal">
+    <inertial>
+      <origin xyz="0.014097083 0.00338636 0.009253016" rpy="0 0 0" />
+      <mass value="0.00540375" />
+      <inertia ixx="0.0000002" ixy="0.000000024" ixz="-0.000000237" iyy="0.000000769" iyz="0.000000006" izz="0.000000712" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.046081508 0.006701902 -0.023538728" rpy="0.481756033 0.100766667 -1.570796287" />
+      <geometry>
+        <mesh filename="meshes/hand/distal.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.046081508 0.006701902 -0.023538728" rpy="0.481756033 0.100766667 -1.570796287" />
+      <geometry>
+        <mesh filename="meshes/hand/distal_shell.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.015021805 0.003336851 0.009696452" rpy="0 0 0" />
+      <geometry>
+        <box size="0.042903001 0.019210503 0.024602776" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="hand_f2_abduction" type="revolute">
+    <parent link="hand_base" />
+    <child link="hand_f2_gimbal" />
+    <origin xyz="-0.014999995 -0.008300003 0.096154306" rpy="0 0 0" />
+    <axis xyz="-1 0.000000075 -0.000001134" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-0.675442" upper="0.666716" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f2_flexion" type="revolute">
+    <parent link="hand_f2_gimbal" />
+    <child link="hand_f2_proximal" />
+    <origin xyz="0.003500026 -0.004974637 -0.000502959" rpy="0 0 0" />
+    <axis xyz="-0.000000039 0.994927334 0.100596224" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.076868" upper="0.771436" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f2_distal" type="revolute">
+    <parent link="hand_f2_proximal" />
+    <child link="hand_f2_distal" />
+    <origin xyz="0.02694977 -0.004473659 0.044245862" rpy="0 0 0" />
+    <axis xyz="-0.000000039 0.994927334 0.100596224" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.047577" upper="0.750452" effort="0.15" velocity="6.0" />
+  </joint>
+  <link name="hand_f3_gimbal">
+    <inertial>
+      <origin xyz="-0.000676814 0 0.000000001" rpy="0 0 0" />
+      <mass value="0.00201325" />
+      <inertia ixx="0.000000019" ixy="0" ixz="0" iyy="0.000000117" iyz="-0.000000001" izz="0.000000121" />
+    </inertial>
+    <visual>
+      <origin xyz="0.003500004 -0.000000002 -0.000000004" rpy="1.570794932 0.23166489 -1.570797288" />
+      <geometry>
+        <mesh filename="meshes/hand/gimbal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.001250004 -0.000000002 -0.000000001" rpy="0 0 0" />
+      <geometry>
+        <box size="0.021500009 0.010248207 0.010877396" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f3_proximal">
+    <inertial>
+      <origin xyz="0.010675694 -0.000689951 0.025727151" rpy="0 0 0" />
+      <mass value="0.0101851" />
+      <inertia ixx="0.000002004" ixy="0.000000205" ixz="-0.000000866" iyy="0.000002287" iyz="0.000000299" izz="0.000001091" />
+    </inertial>
+    <visual>
+      <origin xyz="0.000000005 0.00501242 0.001182431" rpy="1.025973635 0.23166489 -1.570797288" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal_shell.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.000000005 0.005109749 0.001205391" rpy="1.025973635 0.23166489 -1.570797288" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.012812582 -0.001263244 0.02398227" rpy="0 0 0" />
+      <geometry>
+        <box size="0.031713378 0.023028218 0.048695487" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f3_distal">
+    <inertial>
+      <origin xyz="0.014097102 0.002149635 0.009615834" rpy="0 0 0" />
+      <mass value="0.00540375" />
+      <inertia ixx="0.0000002" ixy="0.000000055" ixz="-0.000000232" iyy="0.000000766" iyz="0.000000013" izz="0.000000715" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.046081545 0.009716979 -0.022462504" rpy="0.481754096 0.23166489 -1.570797288" />
+      <geometry>
+        <mesh filename="meshes/hand/distal.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.046081545 0.009716979 -0.022462504" rpy="0.481754096 0.23166489 -1.570797288" />
+      <geometry>
+        <mesh filename="meshes/hand/distal_shell.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.015021823 0.002055605 0.010040629" rpy="0 0 0" />
+      <geometry>
+        <box size="0.042903024 0.020297595 0.0245321" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="hand_f3_abduction" type="revolute">
+    <parent link="hand_base" />
+    <child link="hand_f3_gimbal" />
+    <origin xyz="-0.015000013 -0.040499941 0.085141762" rpy="0 0 0" />
+    <axis xyz="-1 0.000000778 0.000000775" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-0.675442" upper="0.666716" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f3_flexion" type="revolute">
+    <parent link="hand_f3_gimbal" />
+    <child link="hand_f3_proximal" />
+    <origin xyz="0.003499956 -0.004866454 -0.001147951" rpy="0 0 0" />
+    <axis xyz="0.000000936 0.973285488 0.229598255" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.076868" upper="0.771436" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f3_distal" type="revolute">
+    <parent link="hand_f3_proximal" />
+    <child link="hand_f3_distal" />
+    <origin xyz="0.026949846 -0.010210581 0.043283367" rpy="0 0 0" />
+    <axis xyz="0.000000936 0.973285488 0.229598255" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.047577" upper="0.750452" effort="0.15" velocity="6.0" />
+  </joint>
+  <link name="hand_f4_gimbal">
+    <inertial>
+      <origin xyz="0.000000007 0.000000002 -0.000676808" rpy="0 0 0" />
+      <mass value="0.00201325" />
+      <inertia ixx="0.000000121" ixy="0.000000001" ixz="0" iyy="0.000000117" iyz="0" izz="0.000000019" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.000000003 -0.000000001 0.003500007" rpy="-3.141592448 0.000000046 1.915911796" />
+      <geometry>
+        <mesh filename="meshes/hand/gimbal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.000000004 -0.000000001 0.001250007" rpy="0 0 0" />
+      <geometry>
+        <box size="0.010881024 0.01064318 0.021500001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f4_proximal">
+    <inertial>
+      <origin xyz="0.025483693 0.003598022 0.010675597" rpy="0 0 0" />
+      <mass value="0.0101851" />
+      <inertia ixx="0.000001173" ixy="-0.000000426" ixz="-0.000000837" iyy="0.000002205" iyz="-0.000000301" izz="0.000002004" />
+    </inertial>
+    <visual>
+      <origin xyz="0.001742273 -0.004846337 0" rpy="2.596773828 0.000000046 1.915911796" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal_shell.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.001776103 -0.004940441 0" rpy="2.596773828 0.000000046 1.915911796" />
+      <geometry>
+        <mesh filename="meshes/hand/proximal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.023723783 0.00372641 0.012812487" rpy="0 0 0" />
+      <geometry>
+        <box size="0.048585348 0.027810804 0.031713293" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="hand_f4_distal">
+    <inertial>
+      <origin xyz="0.009797548 -0.001047182 0.014097014" rpy="0 0 0" />
+      <mass value="0.00540375" />
+      <inertia ixx="0.000000718" ixy="-0.000000018" ixz="-0.000000224" iyy="0.000000763" iyz="-0.000000081" izz="0.0000002" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.021218355 -0.012197493 -0.046081303" rpy="2.052558345 0.000000046 1.915911796" />
+      <geometry>
+        <mesh filename="meshes/hand/distal_shell.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="-0.021218355 -0.012197493 -0.046081303" rpy="2.052558345 0.000000046 1.915911796" />
+      <geometry>
+        <mesh filename="meshes/hand/distal.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.010192647 -0.000915242 0.015021813" rpy="0 0 0" />
+      <geometry>
+        <box size="0.024416055 0.021182484 0.042902934" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="hand_f4_abduction" type="revolute">
+    <parent link="hand_base" />
+    <child link="hand_f4_gimbal" />
+    <origin xyz="0.028077846 0.024500009 0.026199996" rpy="0 0 0" />
+    <axis xyz="0.00000007 -0.000000024 -1" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-0.675442" upper="0.666716" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f4_flexion" type="revolute">
+    <parent link="hand_f4_gimbal" />
+    <child link="hand_f4_proximal" />
+    <origin xyz="-0.001691525 0.004705199 0.003500002" rpy="0 0 0" />
+    <axis xyz="0.33830534 -0.941036395 0.000000046" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.076868" upper="0.771436" effort="0.15" velocity="6.0" />
+  </joint>
+  <joint name="hand_f4_distal" type="revolute">
+    <parent link="hand_f4_proximal" />
+    <child link="hand_f4_distal" />
+    <origin xyz="0.041849302 0.015044948 0.026949684" rpy="0 0 0" />
+    <axis xyz="0.33830534 -0.941036395 0.000000046" />
+    <dynamics damping="0.02" friction="0.005" />
+    <limit lower="-1.047577" upper="0.750452" effort="0.15" velocity="6.0" />
+  </joint>
+</robot>
