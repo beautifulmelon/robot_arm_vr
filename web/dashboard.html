@@ -99,6 +99,10 @@
     <button id="bodytoggle" style="padding:3px 12px;border-radius:6px;border:1px solid #30363d;
       background:#21262d;color:#c9d1d9;cursor:pointer;font-size:12px">로봇 O</button>
     <span id="bodynote" style="opacity:.7"></span></div>
+  <div class="hint" style="margin-top:6px">팔 :
+    <select id="armsel" style="padding:3px 8px;border-radius:6px;border:1px solid #30363d;
+      background:#21262d;color:#c9d1d9;font-size:12px"></select>
+    <span id="armnote" style="opacity:.75;margin-left:8px"></span></div>
 
   <h2>관절 가동범위</h2>
   <div id="joints"></div>
@@ -155,6 +159,47 @@ function resize() {
 }
 window.addEventListener("resize", resize);
 resize();
+// 마지막 라이브 상태. 미리보기에서 라이브로 되돌아올 때 쓴다.
+let lastLive = null;
+
+// ── 팔 선택 ─────────────────────────────────────────────────────────
+//   "라이브" = 서버가 지금 돌리는 팔. 매 프레임 갱신되고 조종도 이것만 된다.
+//   그 외    = 홈 자세 정지 미리보기 (web/vendor/arms.json).
+//   ★ 조종 대상은 서버 실행 인자(--config)가 정한다. 브라우저에서 못 바꾼다.
+//     IK·안전계층이 그 팔로 만들어져 있기 때문이다.
+let ARMS = [], armMode = "live";
+const armSel = document.getElementById("armsel");
+const armNote = document.getElementById("armnote");
+
+function applyArm() {
+  if (armMode === "live") {
+    armNote.textContent = "서버가 돌리는 팔 · 실시간";
+    armNote.style.color = "#3fb950";
+    lastLive && robotView.update(lastLive);
+    return;
+  }
+  const a = ARMS.find((x) => x.key === armMode);
+  if (!a) return;
+  armNote.innerHTML = `미리보기(홈자세, 정지) · DOF ${a.dof} · 리치 ` +
+    `${a.reach_mm[0]}~${a.reach_mm[1]}mm · 랭크 ${a.position_rank}/3 — ` +
+    `<span style="color:#8b949e">라이브로 조종하려면 </span>` +
+    `<code style="color:#58a6ff">./run.sh --config ${a.config}</code>`;
+  armNote.style.color = "#d29922";
+  // 서버 상태 대신 정지 형상을 그린다. view_matrix 는 마지막 라이브 값을 쓴다.
+  robotView.update({
+    geometry: a.geometry, links: a.links, ee_point: a.ee_point,
+    view_matrix: lastLive && lastLive.view_matrix,
+  });
+}
+
+fetch("/vendor/arms.json").then((r) => r.json()).then((d) => {
+  ARMS = d.arms || [];
+  armSel.innerHTML = '<option value="live">라이브 (서버가 도는 팔)</option>' +
+    ARMS.map((a) => `<option value="${a.key}">${a.label}</option>`).join("");
+  armSel.onchange = () => { armMode = armSel.value; applyArm(); };
+  applyArm();
+}).catch(() => { armNote.textContent = "arms.json 없음 (12_arm_preview.py 실행)"; });
+
 // ── 로봇(본체) O/X 모드 ──────────────────────────────────────────────
 //   O = 차체 위에 얹힌 실제 모습 (바닥이 진짜 바닥, 팔이 184mm 위)
 //   X = 팔만 (base_link 가 원점) — 지금까지 보던 화면
@@ -229,7 +274,10 @@ function card(k, v, cls) {
 }
 
 function render(s) {
-  robotView.update(s);
+  lastLive = s;
+  // ★ 미리보기 모드에서는 3D 뷰를 라이브로 덮지 않는다. 아래 패널(관절·링크·
+  //   모터 상태)은 계속 라이브를 보여준다 — 그게 사람이 봐야 하는 값이다.
+  if (armMode === "live") robotView.update(s);
   if (s.robot) {
     $("robot-info").textContent =
       `${s.robot.name} · ${s.robot.dof}-DOF · EE=${s.robot.ee_frame} · 스케일 ${s.robot.scale.toFixed(3)}`;
