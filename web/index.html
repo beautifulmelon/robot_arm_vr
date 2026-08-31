@@ -362,7 +362,7 @@ function updateHUD(p) {
   lastHudUpdate = now;
 
   const lines = [];
-  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}`);
+  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}   ${robotView ? robotView.meshInfo() : "-"}`);
   for (const side of ["right", "left"]) {
     const c = p[side];
     if (!c) { lines.push(`${side.padEnd(5)} —`); continue; }
@@ -491,7 +491,10 @@ async function initRenderer(session) {
   scene.add(stage);
 
   // Quest 는 팔+손 331k 삼각형이 부담이라 기본은 박스다. ?mesh=1 로 켤 수 있다.
-  const useMeshes = new URLSearchParams(location.search).get("mesh") === "1";
+  // ★ 실제 형상을 기본으로. ?mesh=0 이면 바운딩 박스로 되돌린다.
+  //   신규 팔(arm_new/arm_new2)은 메시가 2.5MB 라 Quest 에서도 부담이 없다.
+  //   기존 팔+손은 16MB 라 무거우니, 그 팔을 쓸 때 느리면 ?mesh=0 을 붙일 것.
+  const useMeshes = new URLSearchParams(location.search).get("mesh") !== "0";
   robotView = new RobotView(stage, { useMeshes });
 
   for (const side of ["left", "right"]) {

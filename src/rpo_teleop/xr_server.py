@@ -130,7 +130,10 @@ class XRServer:
 
         @app.get("/")
         async def index():
-            return FileResponse(self.web_dir / "index.html")
+            # ★ no-cache: 페이지를 고쳐도 헤드셋이 옛 화면을 계속 띄우는 일이
+            #   실제로 있었다. 재검증만 시키므로 비용은 거의 없다.
+            return FileResponse(self.web_dir / "index.html",
+                                headers={"Cache-Control": "no-cache"})
 
         @app.get("/dashboard")
         async def dashboard():
@@ -155,7 +158,8 @@ class XRServer:
         async def robot_view():
             # VR 페이지와 대시보드가 공유하는 렌더링 모듈
             return FileResponse(self.web_dir / "robot_view.js",
-                                media_type="application/javascript")
+                                media_type="application/javascript",
+                                headers={"Cache-Control": "no-cache"})
 
         @app.get("/state")
         async def state():

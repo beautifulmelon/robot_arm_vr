@@ -101,6 +101,8 @@ export class RobotView {
 
     for (const { group } of this.linkNodes.values()) this.root.remove(group);
     this.linkNodes.clear();
+    this.meshWanted = 0;    // 붙이려고 시도한 STL 수
+    this.meshLoaded = 0;    // 실제로 붙은 수
 
     for (const g of geometry) {
       const group = new THREE.Group();
@@ -128,6 +130,7 @@ export class RobotView {
       // 실제 형상은 비동기로 받아 붙인다. 다 받을 때까지는 박스가 보이므로
       // 화면이 비는 구간이 없다.
       if (this.opts.useMeshes && (g.meshes || []).length) {
+        this.meshWanted += g.meshes.length;
         this._attachMeshes(node, g);
       }
     }
@@ -156,6 +159,7 @@ export class RobotView {
       m.rotation.set(spec.rpy[0], spec.rpy[1], spec.rpy[2], "ZYX");  // URDF rpy 순서
       node.group.add(m);
       node.meshParts.push(m);
+      this.meshLoaded += 1;
     }
 
     // 실제 형상이 하나라도 붙으면 대체용 박스는 감춘다
@@ -163,6 +167,13 @@ export class RobotView {
       node.mesh.visible = false;
       node.edges.visible = false;
     }
+  }
+
+  /** 형상 모드를 한 줄로. 헤드셋 안에서 메시가 정말 붙었는지 눈으로 확인용. */
+  meshInfo() {
+    if (!this.opts.useMeshes) return "박스";
+    if (!this.meshWanted) return "박스(메시없음)";
+    return `메시 ${this.meshLoaded}/${this.meshWanted}`;
   }
 
   /**

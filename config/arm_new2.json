@@ -1,5 +1,5 @@
 {
-  "urdf_path": "/Users/jjh/Desktop/robot_arm_vr/assets/arm_new/arm_new_ik.urdf",
+  "urdf_path": "/Users/jjh/Desktop/robot_arm_vr/assets/arm_new2/arm_new2_ik.urdf",
   "ee_frame": "tool_frame",
   "joint_names": [
     "joint1",
@@ -62,7 +62,7 @@
     0.08554075
   ],
   "home_condition": 3.2842113606618155,
-  "total_mass": 2.6006219317,
+  "total_mass": 2.6408757093,
   "human_reach": 0.65,
   "reach_margin": 0.86,
   "control_dt": 0.03333333333333333,
