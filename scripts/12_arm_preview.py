@@ -35,9 +35,9 @@ from rpo_teleop.arm_visual import ArmVisual  # noqa: E402
 
 # 대시보드 목록에 뜨는 순서. label 은 사람이 읽는 이름.
 ARMS = [
-    {"key": "arm_new2", "config": "config/arm_new2.json",
+    {"key": "arm_v2", "config": "config/arm_v2.json",
      "label": "신규 5축 v2 (브래킷 개정)", "note": "양측 지지 요크 · 질량 2.641 kg"},
-    {"key": "arm_new",  "config": "config/arm_new.json",
+    {"key": "arm_v1",  "config": "config/arm_v1.json",
      "label": "신규 5축 v1 + 평행 그리퍼", "note": "Damiao DM-J4340P · STS3215 그리퍼"},
     {"key": "arm",      "config": "config/arm.json",
      "label": "기존 5축 + AmazingHand", "note": "Fusion robot_arm v36"},

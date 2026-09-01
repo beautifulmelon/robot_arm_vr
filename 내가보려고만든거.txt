@@ -1,18 +1,18 @@
 서버 띄우는 법 (그냥 vr로 조종만)
 cd /Users/jjh/Desktop/robot_arm_vr
-./run.sh --config config/arm_new2.json --no-hand
+./run.sh --config config/arm_v2.json --no-hand
 
 ---------------------
 Isaac Sim 까지 붙일 때
 ssh 100.93.186.122 'cd ~/projects/isaac-sim && DISPLAY=:0 setsid nohup \
   .venv/bin/python -u scripts/10_vr_bridge.py > /tmp/bridge.log 2>&1 < /dev/null &'
 
-./run.sh --config config/arm_new2.json --no-hand \
+./run.sh --config config/arm_v2.json --no-hand \
          --profile isaac --jetson-host 100.93.186.122
 
 -----------------------
 다른 팔로 바꿀 때
-./run.sh --config config/arm_new.json --no-hand    # 신규 v1
+./run.sh --config config/arm_v1.json --no-hand    # 신규 v1
 ./run.sh                                            # 기존 5축 + AmazingHand
 ./run.sh --temp                                     # 임시 3축
 

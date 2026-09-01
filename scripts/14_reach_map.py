@@ -53,8 +53,8 @@ def limits(cfg: Path) -> tuple[np.ndarray, np.ndarray]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--urdf", type=Path, default=ROOT / "assets/arm_new2/arm_new2.urdf")
-    ap.add_argument("--config", type=Path, default=ROOT / "config/arm_new2.json")
+    ap.add_argument("--urdf", type=Path, default=ROOT / "assets/arm_v2/arm_v2.urdf")
+    ap.add_argument("--config", type=Path, default=ROOT / "config/arm_v2.json")
     ap.add_argument("--step", type=float, default=2.0, help="관절 격자 간격 (deg)")
     ap.add_argument("--down-tol", type=float, default=30.0,
                     help="'아래를 본다' 허용 각 (deg). 툴 +Z 와 -Z_world 사이 각")

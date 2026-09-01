@@ -13,7 +13,7 @@
 
 파일 규약
     IK URDF 가  <이름>_ik.urdf  이면 원본은 같은 폴더의 <이름>.urdf 다.
-        assets/arm_new2/arm_new2_ik.urdf  →  assets/arm_new2/arm_new2.urdf
+        assets/arm_v2/arm_v2_ik.urdf  →  assets/arm_v2/arm_v2.urdf
     원본 옆에 gripper_map.py 가 있으면 그걸로 개구↔관절각을 변환한다.
     (실측 56점 피팅. 최대오차 로커각 0.07° / 개구 0.04 mm)
 

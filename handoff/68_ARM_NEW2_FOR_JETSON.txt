@@ -26,10 +26,10 @@
    · Command 스키마는 안 바뀝니다. 받는 쪽이 grasp 를 무시하면 지금과 똑같이 돕니다
 
        바로 돌려보기
-         ./run.sh --config config/arm_new2.json --no-hand
+         ./run.sh --config config/arm_v2.json --no-hand
 
        실물에 붙이기
-         ./run.sh --config config/arm_new2.json --no-hand \
+         ./run.sh --config config/arm_v2.json --no-hand \
                   --motors jetson --jetson-host <젯슨주소>
 
    ★ **--no-hand 가 필수입니다.** 빼면 `Frame with name hand_mount not found` 로 죽습니다.
@@ -56,7 +56,7 @@
 
 --- 2.2 받는 쪽에서 하실 일 — 이것 하나입니다 ---
 
-      import gripper_map as gm                  # assets/arm_new2/gripper_map.py
+      import gripper_map as gm                  # assets/arm_v2/gripper_map.py
       opening = 57.9 + (0.5 - 57.9) * clip(grasp, 0.0, 1.0)
       servo   = gm.servo_for_opening(opening)   # 유효 10~120°
 
@@ -119,8 +119,8 @@
 
       항목            66 (v1)                    지금 (v2)
       ---------------------------------------------------------------------
-      config          config/arm_new.json        config/arm_new2.json
-      URDF            arm_new_ik.urdf            arm_new2_ik.urdf
+      config          config/arm_v1.json        config/arm_v2.json
+      URDF            arm_v1_ik.urdf            arm_v2_ik.urdf
       그리퍼          ❌ 통로 없음                ✅ grasp 상시 송신
       홈 자세         미정                       확정 (§3)
       v1              —                          그대로 남아 있습니다
@@ -137,10 +137,10 @@
 --- 5.1 ★ 팔 식별자 — 이게 안 정해지면 실물이 막힙니다 (M-10 과 같은 종류) ---
 
   State 의 robot 이 config 의 URDF 파일명과 다르면 check_robot_match 에서
-  전부 차단됩니다. 받는 쪽이 "arm_new2.urdf" 같은 자연스러운 이름을 보내면
-  막힙니다 (Mac 이 기대하는 건 "arm_new2_ik.urdf").
+  전부 차단됩니다. 받는 쪽이 "arm_v2.urdf" 같은 자연스러운 이름을 보내면
+  막힙니다 (Mac 이 기대하는 건 "arm_v2_ik.urdf").
 
-      (A) 젯슨이 "arm_new2_ik.urdf" 를 보낸다        지금 코드로 바로 됨
+      (A) 젯슨이 "arm_v2_ik.urdf" 를 보낸다        지금 코드로 바로 됨
       (B) config 에 "robot_id" 를 두고 그걸 우선 본다  ★ 권장
 
   정해주시면 제 쪽 config 를 맞추겠습니다. 66 §5 에서 물었던 것과 같은데
@@ -207,8 +207,8 @@
  8. 첨부
 ================================================================================
 
-      assets/arm_new2/          URDF 3종 + 메시 10 + gripper_map.py + 렌더
-      config/arm_new2.json      텔레옵 설정 (홈 자세 포함)
+      assets/arm_v2/          URDF 3종 + 메시 10 + gripper_map.py + 렌더
+      config/arm_v2.json      텔레옵 설정 (홈 자세 포함)
       src/rpo_teleop/gripper_link.py
       scripts/14_reach_map.py
       docs/07_trash_task_roadmap.md   측정 리스트 · 태스크 로드맵

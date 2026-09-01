@@ -2,11 +2,11 @@
 """IK 전용 URDF 를 만든다 — 구동 관절만 남기고 나머지는 fixed 로 굳힌다.
 
     .venv/bin/python scripts/11_make_ik_urdf.py \
-        --in assets/arm_new/arm_new.urdf --out assets/arm_new/arm_new_ik.urdf \
+        --in assets/arm_v1/arm_v1.urdf --out assets/arm_v1/arm_v1_ik.urdf \
         --keep joint1 joint2 joint3 joint4 joint5
 
 왜 필요한가
-    placo 는 URDF 의 <mimic> 태그를 **무시한다.** 그래서 신규 팔의 arm_new.urdf 를
+    placo 는 URDF 의 <mimic> 태그를 **무시한다.** 그래서 신규 팔의 arm_v1.urdf 를
     그대로 넣으면 종속 관절(jaw_l/jaw_r/rocker_r)까지 구동 관절 9개로 세고,
     IK 가 실물에 없는 자유도를 마음대로 쓴다.
 
