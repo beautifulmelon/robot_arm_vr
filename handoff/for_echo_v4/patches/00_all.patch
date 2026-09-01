@@ -1,0 +1,219 @@
+diff --git a/scripts/05_teleop_sim.py b/scripts/05_teleop_sim.py
+index dec499b..7e4cece 100644
+--- a/scripts/05_teleop_sim.py
++++ b/scripts/05_teleop_sim.py
+@@ -40,6 +40,7 @@ sys.path.insert(0, str(ROOT / "src"))
+ 
+ from rpo_teleop.arm_config import ArmConfig  # noqa: E402
+ from rpo_teleop.certs import get_local_ip, list_local_ips  # noqa: E402
++from rpo_teleop.gripper_link import attach as attach_gripper  # noqa: E402
+ from rpo_teleop.hand_model import HandModel, grasp_to_servo  # noqa: E402
+ from rpo_teleop.jetson_link import (  # noqa: E402
+     STATE_TRIP, JetsonBackend, check_robot_match)
+@@ -304,7 +305,13 @@ def main() -> int:
+             hand.set_grasp(0.0)
+         except Exception as exc:
+             print(f"  ⚠️  손 모델 로드 실패 ({exc}) — 팔만 표시합니다", flush=True)
+-    visual = ArmVisual(ik.robot, cfg.urdf_path, hand=hand)
++    # 그리퍼가 달린 팔(신규)은 화면용 로봇을 따로 둔다. IK URDF 는 그리퍼
++    # 관절이 fixed 라 조가 안 움직이기 때문이다. 없으면 None 이고 기존과 같다.
++    gripper = attach_gripper(cfg.urdf_path, list(cfg.joint_names))
++    if gripper is not None:
++        visual = ArmVisual(gripper.robot, gripper.urdf_path, hand=hand)
++    else:
++        visual = ArmVisual(ik.robot, cfg.urdf_path, hand=hand)
+ 
+     viz = None
+     viz_url = None
+@@ -570,6 +577,10 @@ def main() -> int:
+ 
+         t_ik = time.perf_counter()
+         q, clamped = ik.solve(target)
++        # 화면용 그리퍼 로봇에 팔 자세를 복사하고 트리거로 조를 연다.
++        # ★ IK 로봇은 안 건드린다 (5축 그대로여야 프로토콜이 안 바뀐다).
++        if gripper is not None:
++            gripper.update(q, grasp)
+         ik_times.append(time.perf_counter() - t_ik)
+ 
+         # ── 모터 출력 ────────────────────────────────────────────────
+@@ -658,7 +669,10 @@ def main() -> int:
+             q_prev_cmd = q.copy()
+             motors.write_positions(
+                 q, dq=dq_cmd,
+-                grasp=None if hand is None else float(grasp),
++                # ★ 손이 없어도 grasp 는 보낸다. 신규 팔은 그리퍼가 내장이라
++                #   항상 --no-hand 로 도는데, 그러면 그리퍼를 몰 값이 없어진다.
++                #   servo(8개)는 AmazingHand 전용이라 그때만 채운다.
++                grasp=float(grasp),
+                 servo=None if hand is None else grasp_to_servo(grasp),
+                 # ★ 받는 쪽은 클러치를 모른다. 데이터셋에서 조작자가 손을 뗀
+                 #   구간을 학습에서 빼려면 이 정보가 필요하다.
+diff --git a/src/rpo_teleop/xr_server.py b/src/rpo_teleop/xr_server.py
+index 268c472..f9eb1db 100644
+--- a/src/rpo_teleop/xr_server.py
++++ b/src/rpo_teleop/xr_server.py
+@@ -130,7 +130,10 @@ class XRServer:
+ 
+         @app.get("/")
+         async def index():
+-            return FileResponse(self.web_dir / "index.html")
++            # ★ no-cache: 페이지를 고쳐도 헤드셋이 옛 화면을 계속 띄우는 일이
++            #   실제로 있었다. 재검증만 시키므로 비용은 거의 없다.
++            return FileResponse(self.web_dir / "index.html",
++                                headers={"Cache-Control": "no-cache"})
+ 
+         @app.get("/dashboard")
+         async def dashboard():
+@@ -155,7 +158,8 @@ class XRServer:
+         async def robot_view():
+             # VR 페이지와 대시보드가 공유하는 렌더링 모듈
+             return FileResponse(self.web_dir / "robot_view.js",
+-                                media_type="application/javascript")
++                                media_type="application/javascript",
++                                headers={"Cache-Control": "no-cache"})
+ 
+         @app.get("/state")
+         async def state():
+diff --git a/web/dashboard.html b/web/dashboard.html
+index 96e52bc..bb989ba 100644
+--- a/web/dashboard.html
++++ b/web/dashboard.html
+@@ -99,6 +99,10 @@
+     <button id="bodytoggle" style="padding:3px 12px;border-radius:6px;border:1px solid #30363d;
+       background:#21262d;color:#c9d1d9;cursor:pointer;font-size:12px">로봇 O</button>
+     <span id="bodynote" style="opacity:.7"></span></div>
++  <div class="hint" style="margin-top:6px">팔 :
++    <select id="armsel" style="padding:3px 8px;border-radius:6px;border:1px solid #30363d;
++      background:#21262d;color:#c9d1d9;font-size:12px"></select>
++    <span id="armnote" style="opacity:.75;margin-left:8px"></span></div>
+ 
+   <h2>관절 가동범위</h2>
+   <div id="joints"></div>
+@@ -155,6 +159,47 @@ function resize() {
+ }
+ window.addEventListener("resize", resize);
+ resize();
++// 마지막 라이브 상태. 미리보기에서 라이브로 되돌아올 때 쓴다.
++let lastLive = null;
++
++// ── 팔 선택 ─────────────────────────────────────────────────────────
++//   "라이브" = 서버가 지금 돌리는 팔. 매 프레임 갱신되고 조종도 이것만 된다.
++//   그 외    = 홈 자세 정지 미리보기 (web/vendor/arms.json).
++//   ★ 조종 대상은 서버 실행 인자(--config)가 정한다. 브라우저에서 못 바꾼다.
++//     IK·안전계층이 그 팔로 만들어져 있기 때문이다.
++let ARMS = [], armMode = "live";
++const armSel = document.getElementById("armsel");
++const armNote = document.getElementById("armnote");
++
++function applyArm() {
++  if (armMode === "live") {
++    armNote.textContent = "서버가 돌리는 팔 · 실시간";
++    armNote.style.color = "#3fb950";
++    lastLive && robotView.update(lastLive);
++    return;
++  }
++  const a = ARMS.find((x) => x.key === armMode);
++  if (!a) return;
++  armNote.innerHTML = `미리보기(홈자세, 정지) · DOF ${a.dof} · 리치 ` +
++    `${a.reach_mm[0]}~${a.reach_mm[1]}mm · 랭크 ${a.position_rank}/3 — ` +
++    `<span style="color:#8b949e">라이브로 조종하려면 </span>` +
++    `<code style="color:#58a6ff">./run.sh --config ${a.config}</code>`;
++  armNote.style.color = "#d29922";
++  // 서버 상태 대신 정지 형상을 그린다. view_matrix 는 마지막 라이브 값을 쓴다.
++  robotView.update({
++    geometry: a.geometry, links: a.links, ee_point: a.ee_point,
++    view_matrix: lastLive && lastLive.view_matrix,
++  });
++}
++
++fetch("/vendor/arms.json").then((r) => r.json()).then((d) => {
++  ARMS = d.arms || [];
++  armSel.innerHTML = '<option value="live">라이브 (서버가 도는 팔)</option>' +
++    ARMS.map((a) => `<option value="${a.key}">${a.label}</option>`).join("");
++  armSel.onchange = () => { armMode = armSel.value; applyArm(); };
++  applyArm();
++}).catch(() => { armNote.textContent = "arms.json 없음 (12_arm_preview.py 실행)"; });
++
+ // ── 로봇(본체) O/X 모드 ──────────────────────────────────────────────
+ //   O = 차체 위에 얹힌 실제 모습 (바닥이 진짜 바닥, 팔이 184mm 위)
+ //   X = 팔만 (base_link 가 원점) — 지금까지 보던 화면
+@@ -229,7 +274,10 @@ function card(k, v, cls) {
+ }
+ 
+ function render(s) {
+-  robotView.update(s);
++  lastLive = s;
++  // ★ 미리보기 모드에서는 3D 뷰를 라이브로 덮지 않는다. 아래 패널(관절·링크·
++  //   모터 상태)은 계속 라이브를 보여준다 — 그게 사람이 봐야 하는 값이다.
++  if (armMode === "live") robotView.update(s);
+   if (s.robot) {
+     $("robot-info").textContent =
+       `${s.robot.name} · ${s.robot.dof}-DOF · EE=${s.robot.ee_frame} · 스케일 ${s.robot.scale.toFixed(3)}`;
+diff --git a/web/index.html b/web/index.html
+index 38f3c41..7b4ad2d 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -362,7 +362,7 @@ function updateHUD(p) {
+   lastHudUpdate = now;
+ 
+   const lines = [];
+-  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}`);
++  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}   ${robotView ? robotView.meshInfo() : "-"}`);
+   for (const side of ["right", "left"]) {
+     const c = p[side];
+     if (!c) { lines.push(`${side.padEnd(5)} —`); continue; }
+@@ -491,7 +491,10 @@ async function initRenderer(session) {
+   scene.add(stage);
+ 
+   // Quest 는 팔+손 331k 삼각형이 부담이라 기본은 박스다. ?mesh=1 로 켤 수 있다.
+-  const useMeshes = new URLSearchParams(location.search).get("mesh") === "1";
++  // ★ 실제 형상을 기본으로. ?mesh=0 이면 바운딩 박스로 되돌린다.
++  //   신규 팔(arm_v1/arm_v2)은 메시가 2.5MB 라 Quest 에서도 부담이 없다.
++  //   기존 팔+손은 16MB 라 무거우니, 그 팔을 쓸 때 느리면 ?mesh=0 을 붙일 것.
++  const useMeshes = new URLSearchParams(location.search).get("mesh") !== "0";
+   robotView = new RobotView(stage, { useMeshes });
+ 
+   for (const side of ["left", "right"]) {
+diff --git a/web/robot_view.js b/web/robot_view.js
+index b155341..6d98ccd 100644
+--- a/web/robot_view.js
++++ b/web/robot_view.js
+@@ -101,6 +101,8 @@ export class RobotView {
+ 
+     for (const { group } of this.linkNodes.values()) this.root.remove(group);
+     this.linkNodes.clear();
++    this.meshWanted = 0;    // 붙이려고 시도한 STL 수
++    this.meshLoaded = 0;    // 실제로 붙은 수
+ 
+     for (const g of geometry) {
+       const group = new THREE.Group();
+@@ -128,6 +130,7 @@ export class RobotView {
+       // 실제 형상은 비동기로 받아 붙인다. 다 받을 때까지는 박스가 보이므로
+       // 화면이 비는 구간이 없다.
+       if (this.opts.useMeshes && (g.meshes || []).length) {
++        this.meshWanted += g.meshes.length;
+         this._attachMeshes(node, g);
+       }
+     }
+@@ -156,6 +159,7 @@ export class RobotView {
+       m.rotation.set(spec.rpy[0], spec.rpy[1], spec.rpy[2], "ZYX");  // URDF rpy 순서
+       node.group.add(m);
+       node.meshParts.push(m);
++      this.meshLoaded += 1;
+     }
+ 
+     // 실제 형상이 하나라도 붙으면 대체용 박스는 감춘다
+@@ -165,6 +169,13 @@ export class RobotView {
+     }
+   }
+ 
++  /** 형상 모드를 한 줄로. 헤드셋 안에서 메시가 정말 붙었는지 눈으로 확인용. */
++  meshInfo() {
++    if (!this.opts.useMeshes) return "박스";
++    if (!this.meshWanted) return "박스(메시없음)";
++    return `메시 ${this.meshLoaded}/${this.meshWanted}`;
++  }
++
+   /**
+    * 본체(차체) 형상을 불러온다. scripts/09_body_visual.py 가 만든 정적 JSON.
+    *

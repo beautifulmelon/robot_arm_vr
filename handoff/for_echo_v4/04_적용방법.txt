@@ -1,0 +1,152 @@
+================================================================================
+  echo_v4 에 실제로 넣는 절차
+================================================================================
+
+
+ 0. 먼저 알아야 할 것 — 저장소가 갈라져 있습니다
+--------------------------------------------------------------------------------
+   beautifulmelon/robot_arm_vr  (이 꾸러미를 만든 쪽)
+   dingdongdengdong/robot_arm_vr  (echo_v4 의 third_party 서브모듈)
+
+   둘은 같은 뿌리 **6e5745b** 에서 갈라져 각자 갔습니다.
+
+       그쪽에만 3커밋   SuperArm J1J2 텔레오퍼레이션
+                        Quest 홈버튼 비활성화 옵션
+                        J1J2 팔/손 URDF 갱신
+       이쪽에만 2커밋   신규 5축 팔 v1/v2 + 평행 그리퍼
+                        VR 그리퍼 조종 · 홈 자세 · 도달범위 재측정
+
+   ★ **파일을 통째로 덮어쓰면 그쪽 3커밋이 날아갑니다.**
+     특히 scripts/05_teleop_sim.py 는 그쪽에서 +117 줄을 고쳤습니다.
+
+   patches/ 는 **공통 조상 6e5745b 기준**으로 뽑았습니다.
+   3-way 로 적용하면 양쪽 변경이 자동으로 합쳐집니다.
+
+
+ 1. 절차
+--------------------------------------------------------------------------------
+
+   # 0) 서브모듈로 들어가서 브랜치를 딴다
+   cd echo_v4/third_party/robot_arm_vr
+   git switch -c work/arm-v2-gripper
+
+   # 1) 팔 자산
+   mkdir -p assets/arm_v2
+   cp -R <꾸러미>/arm_v2/.  assets/arm_v2/
+   cp    <꾸러미>/config/arm_v2.json  config/
+
+   # 2) ★ config 의 urdf_path 를 그쪽 절대경로로 고친다
+   #    "urdf_path": "/.../assets/arm_v2/arm_v2_ik.urdf"
+
+   # 3) 새 파일 (충돌 없음)
+   cp <꾸러미>/new_files/src/rpo_teleop/gripper_link.py  src/rpo_teleop/
+   cp <꾸러미>/new_files/scripts/*.py                     scripts/
+   cp <꾸러미>/new_files/web/vendor/arms.json             web/vendor/
+
+   # 4) 기존 파일 변경분 — 3-way 로
+   git apply -3 <꾸러미>/patches/00_all.patch
+   #  충돌이 나면 <<<<<<< 표시를 풀고 git add
+   #  하나씩 하려면 01 → 02 → 03 순서로
+
+   # 5) arms.json 재생성 (경로가 바뀌었으므로)
+   python3 scripts/12_arm_preview.py
+
+   # 6) 확인
+   python3 -m pytest tests/ -q
+   ./run.sh --config config/arm_v2.json --no-hand
+
+
+ 1-1. ★ 패치 적용 결과를 미리 시험해 봤습니다
+--------------------------------------------------------------------------------
+   dingdongdengdong/robot_arm_vr 의 main (b2fd949) 위에 `git apply -3` 를
+   실제로 돌려본 결과입니다.
+
+       scripts/05_teleop_sim.py     cleanly   ✅  (그쪽 +117줄과 자동 병합)
+       src/rpo_teleop/xr_server.py  cleanly   ✅
+       web/dashboard.html           cleanly   ✅
+       web/robot_view.js            cleanly   ✅
+       web/index.html               conflicts ⚠️  ← 여기만 손으로 푸세요
+
+   ★ **충돌은 web/index.html 하나뿐입니다.**
+     그쪽이 "Quest 홈버튼 비활성화" 로 이 파일을 고쳤고, 이쪽은 메시 모드와
+     HUD 표시를 고쳤습니다. 서로 다른 곳이라 양쪽을 **둘 다 살리면** 됩니다.
+
+     이쪽 변경은 두 군데입니다.
+       (1) const useMeshes = ...get("mesh") !== "0";   ← 실제 형상을 기본으로
+       (2) HUD 첫 줄 끝에 ${robotView ? robotView.meshInfo() : "-"}
+
+     `<<<<<<<` 표시를 풀 때 그쪽 홈버튼 관련 코드를 지우지 마세요.
+
+
+ 2. 확인 항목
+--------------------------------------------------------------------------------
+   [ ] 기동 배너에 `로봇 : arm_v2_ik.urdf  5-DOF  EE=tool_frame`
+   [ ] /state 의 링크가 **10개** (팔 6 + 그리퍼 4). 6개면 IK URDF 를 보고 있는 것
+   [ ] dof_mismatch 가 None
+   [ ] https://<IP>:4453/mesh/arm/link5.stl 이 200
+   [ ] 대시보드 팔 선택기에 v2 가 뜨고 홈 자세가 위 03 문서와 같은 모양
+   [ ] VR HUD 첫 줄에 `메시 10/10`
+   [ ] 오른손 트리거를 당기면 화면에서 조가 닫힌다
+
+
+ 3. ★ 자주 걸리는 것
+--------------------------------------------------------------------------------
+
+   `Frame with name hand_mount not found in model`
+       --no-hand 를 빠뜨렸습니다. 신규 팔에는 AmazingHand 가 없습니다.
+
+   EE 프레임이 camera_mount 로 잡힌다
+       EE_FRAME_CANDIDATES 에 tool_frame 이 없습니다.
+       config 의 ee_frame 이 "tool_frame" 인지 확인하세요.
+
+   IK 가 이상하게 풀린다 / DOF 가 9로 나온다
+       arm_v2.urdf(원본)를 IK 에 물렸습니다. **arm_v2_ik.urdf** 를 써야 합니다.
+       placo 는 <mimic> 을 무시해서 종속 관절까지 구동 관절로 셉니다.
+
+   화면에서 그리퍼 조가 안 움직인다
+       `<이름>_ik.urdf` 옆에 `<이름>.urdf` 가 있어야 합니다.
+       gripper_link.attach() 가 그 규약으로 원본을 찾습니다.
+
+   `TypeError: unexpected keyword argument`
+       ArmConfig.load() 는 모르는 키를 거부합니다. config 에 필드를
+       임의로 추가하지 마세요.
+
+   실물/브릿지가 명령을 전부 거부한다 (dof_mismatch)
+       ★ check_robot_match 가 **config 의 URDF 파일명**과 State 의 robot 을
+         대조합니다. 받는 쪽이 보내야 하는 값은 **arm_v2_ik.urdf** 입니다.
+         자연스러운 이름(arm_v2.urdf)을 보내면 막힙니다.
+         config 에 robot_id 를 두고 그걸 우선 보게 하는 쪽이 낫다고
+         제안해 뒀습니다 (docs/68 §5.1). 정해지면 알려주세요.
+
+   헤드셋에서 페이지를 고쳐도 반영이 안 된다
+       열려 있던 탭이 옛 코드를 들고 있습니다. **새로고침**하세요.
+       02_xr_server_nocache.patch 가 앞으로는 이걸 막아줍니다.
+
+   포트 충돌로 조용히 죽는다
+       같은 프로파일을 두 번 띄웠거나 실물 갈래와 겹쳤습니다.
+       --profile isaac / test 로 나누세요.
+
+
+ 4. 받는 쪽(젯슨/브릿지)에서 해야 할 일 — 그리퍼
+--------------------------------------------------------------------------------
+   Command.grasp 에 0.0~1.0 이 **항상** 실려 옵니다. 이 한 줄만 붙이면 됩니다.
+
+       import gripper_map as gm            # assets/arm_v2/gripper_map.py
+       opening = 57.9 + (0.5 - 57.9) * clip(grasp, 0.0, 1.0)
+       servo   = gm.servo_for_opening(opening)     # 유효 10~120°
+
+   ★ Command 스키마는 안 바뀝니다. grasp 를 무시하면 지금까지와 똑같이 돕니다.
+   자세한 것은 docs/68 §2.
+
+
+ 5. 되돌리기
+--------------------------------------------------------------------------------
+   전부 새 파일과 패치라서 브랜치를 지우면 원상복구됩니다.
+
+       git switch main && git branch -D work/arm-v2-gripper
+
+   기존 팔(robot_arm · robot_arm_temp · superarm_j1_j2)은 **하나도 안 건드렸습니다.**
+   gripper_link.attach() 도 그리퍼가 없는 팔에서는 None 을 돌려주고
+   호출부가 예전과 똑같이 동작합니다.
+
+================================================================================

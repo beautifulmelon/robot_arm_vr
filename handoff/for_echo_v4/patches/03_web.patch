@@ -1,0 +1,143 @@
+diff --git a/web/dashboard.html b/web/dashboard.html
+index 96e52bc..bb989ba 100644
+--- a/web/dashboard.html
++++ b/web/dashboard.html
+@@ -99,6 +99,10 @@
+     <button id="bodytoggle" style="padding:3px 12px;border-radius:6px;border:1px solid #30363d;
+       background:#21262d;color:#c9d1d9;cursor:pointer;font-size:12px">로봇 O</button>
+     <span id="bodynote" style="opacity:.7"></span></div>
++  <div class="hint" style="margin-top:6px">팔 :
++    <select id="armsel" style="padding:3px 8px;border-radius:6px;border:1px solid #30363d;
++      background:#21262d;color:#c9d1d9;font-size:12px"></select>
++    <span id="armnote" style="opacity:.75;margin-left:8px"></span></div>
+ 
+   <h2>관절 가동범위</h2>
+   <div id="joints"></div>
+@@ -155,6 +159,47 @@ function resize() {
+ }
+ window.addEventListener("resize", resize);
+ resize();
++// 마지막 라이브 상태. 미리보기에서 라이브로 되돌아올 때 쓴다.
++let lastLive = null;
++
++// ── 팔 선택 ─────────────────────────────────────────────────────────
++//   "라이브" = 서버가 지금 돌리는 팔. 매 프레임 갱신되고 조종도 이것만 된다.
++//   그 외    = 홈 자세 정지 미리보기 (web/vendor/arms.json).
++//   ★ 조종 대상은 서버 실행 인자(--config)가 정한다. 브라우저에서 못 바꾼다.
++//     IK·안전계층이 그 팔로 만들어져 있기 때문이다.
++let ARMS = [], armMode = "live";
++const armSel = document.getElementById("armsel");
++const armNote = document.getElementById("armnote");
++
++function applyArm() {
++  if (armMode === "live") {
++    armNote.textContent = "서버가 돌리는 팔 · 실시간";
++    armNote.style.color = "#3fb950";
++    lastLive && robotView.update(lastLive);
++    return;
++  }
++  const a = ARMS.find((x) => x.key === armMode);
++  if (!a) return;
++  armNote.innerHTML = `미리보기(홈자세, 정지) · DOF ${a.dof} · 리치 ` +
++    `${a.reach_mm[0]}~${a.reach_mm[1]}mm · 랭크 ${a.position_rank}/3 — ` +
++    `<span style="color:#8b949e">라이브로 조종하려면 </span>` +
++    `<code style="color:#58a6ff">./run.sh --config ${a.config}</code>`;
++  armNote.style.color = "#d29922";
++  // 서버 상태 대신 정지 형상을 그린다. view_matrix 는 마지막 라이브 값을 쓴다.
++  robotView.update({
++    geometry: a.geometry, links: a.links, ee_point: a.ee_point,
++    view_matrix: lastLive && lastLive.view_matrix,
++  });
++}
++
++fetch("/vendor/arms.json").then((r) => r.json()).then((d) => {
++  ARMS = d.arms || [];
++  armSel.innerHTML = '<option value="live">라이브 (서버가 도는 팔)</option>' +
++    ARMS.map((a) => `<option value="${a.key}">${a.label}</option>`).join("");
++  armSel.onchange = () => { armMode = armSel.value; applyArm(); };
++  applyArm();
++}).catch(() => { armNote.textContent = "arms.json 없음 (12_arm_preview.py 실행)"; });
++
+ // ── 로봇(본체) O/X 모드 ──────────────────────────────────────────────
+ //   O = 차체 위에 얹힌 실제 모습 (바닥이 진짜 바닥, 팔이 184mm 위)
+ //   X = 팔만 (base_link 가 원점) — 지금까지 보던 화면
+@@ -229,7 +274,10 @@ function card(k, v, cls) {
+ }
+ 
+ function render(s) {
+-  robotView.update(s);
++  lastLive = s;
++  // ★ 미리보기 모드에서는 3D 뷰를 라이브로 덮지 않는다. 아래 패널(관절·링크·
++  //   모터 상태)은 계속 라이브를 보여준다 — 그게 사람이 봐야 하는 값이다.
++  if (armMode === "live") robotView.update(s);
+   if (s.robot) {
+     $("robot-info").textContent =
+       `${s.robot.name} · ${s.robot.dof}-DOF · EE=${s.robot.ee_frame} · 스케일 ${s.robot.scale.toFixed(3)}`;
+diff --git a/web/index.html b/web/index.html
+index 38f3c41..7b4ad2d 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -362,7 +362,7 @@ function updateHUD(p) {
+   lastHudUpdate = now;
+ 
+   const lines = [];
+-  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}`);
++  lines.push(`WS ${wsReady ? "●" : "○"}   frame ${p.frame}   scale ${p.scale.toFixed(2)}   ${robotView ? robotView.meshInfo() : "-"}`);
+   for (const side of ["right", "left"]) {
+     const c = p[side];
+     if (!c) { lines.push(`${side.padEnd(5)} —`); continue; }
+@@ -491,7 +491,10 @@ async function initRenderer(session) {
+   scene.add(stage);
+ 
+   // Quest 는 팔+손 331k 삼각형이 부담이라 기본은 박스다. ?mesh=1 로 켤 수 있다.
+-  const useMeshes = new URLSearchParams(location.search).get("mesh") === "1";
++  // ★ 실제 형상을 기본으로. ?mesh=0 이면 바운딩 박스로 되돌린다.
++  //   신규 팔(arm_v1/arm_v2)은 메시가 2.5MB 라 Quest 에서도 부담이 없다.
++  //   기존 팔+손은 16MB 라 무거우니, 그 팔을 쓸 때 느리면 ?mesh=0 을 붙일 것.
++  const useMeshes = new URLSearchParams(location.search).get("mesh") !== "0";
+   robotView = new RobotView(stage, { useMeshes });
+ 
+   for (const side of ["left", "right"]) {
+diff --git a/web/robot_view.js b/web/robot_view.js
+index b155341..6d98ccd 100644
+--- a/web/robot_view.js
++++ b/web/robot_view.js
+@@ -101,6 +101,8 @@ export class RobotView {
+ 
+     for (const { group } of this.linkNodes.values()) this.root.remove(group);
+     this.linkNodes.clear();
++    this.meshWanted = 0;    // 붙이려고 시도한 STL 수
++    this.meshLoaded = 0;    // 실제로 붙은 수
+ 
+     for (const g of geometry) {
+       const group = new THREE.Group();
+@@ -128,6 +130,7 @@ export class RobotView {
+       // 실제 형상은 비동기로 받아 붙인다. 다 받을 때까지는 박스가 보이므로
+       // 화면이 비는 구간이 없다.
+       if (this.opts.useMeshes && (g.meshes || []).length) {
++        this.meshWanted += g.meshes.length;
+         this._attachMeshes(node, g);
+       }
+     }
+@@ -156,6 +159,7 @@ export class RobotView {
+       m.rotation.set(spec.rpy[0], spec.rpy[1], spec.rpy[2], "ZYX");  // URDF rpy 순서
+       node.group.add(m);
+       node.meshParts.push(m);
++      this.meshLoaded += 1;
+     }
+ 
+     // 실제 형상이 하나라도 붙으면 대체용 박스는 감춘다
+@@ -165,6 +169,13 @@ export class RobotView {
+     }
+   }
+ 
++  /** 형상 모드를 한 줄로. 헤드셋 안에서 메시가 정말 붙었는지 눈으로 확인용. */
++  meshInfo() {
++    if (!this.opts.useMeshes) return "박스";
++    if (!this.meshWanted) return "박스(메시없음)";
++    return `메시 ${this.meshLoaded}/${this.meshWanted}`;
++  }
++
+   /**
+    * 본체(차체) 형상을 불러온다. scripts/09_body_visual.py 가 만든 정적 JSON.
+    *

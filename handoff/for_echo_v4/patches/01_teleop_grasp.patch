@@ -1,0 +1,50 @@
+diff --git a/scripts/05_teleop_sim.py b/scripts/05_teleop_sim.py
+index dec499b..7e4cece 100644
+--- a/scripts/05_teleop_sim.py
++++ b/scripts/05_teleop_sim.py
+@@ -40,6 +40,7 @@ sys.path.insert(0, str(ROOT / "src"))
+ 
+ from rpo_teleop.arm_config import ArmConfig  # noqa: E402
+ from rpo_teleop.certs import get_local_ip, list_local_ips  # noqa: E402
++from rpo_teleop.gripper_link import attach as attach_gripper  # noqa: E402
+ from rpo_teleop.hand_model import HandModel, grasp_to_servo  # noqa: E402
+ from rpo_teleop.jetson_link import (  # noqa: E402
+     STATE_TRIP, JetsonBackend, check_robot_match)
+@@ -304,7 +305,13 @@ def main() -> int:
+             hand.set_grasp(0.0)
+         except Exception as exc:
+             print(f"  ⚠️  손 모델 로드 실패 ({exc}) — 팔만 표시합니다", flush=True)
+-    visual = ArmVisual(ik.robot, cfg.urdf_path, hand=hand)
++    # 그리퍼가 달린 팔(신규)은 화면용 로봇을 따로 둔다. IK URDF 는 그리퍼
++    # 관절이 fixed 라 조가 안 움직이기 때문이다. 없으면 None 이고 기존과 같다.
++    gripper = attach_gripper(cfg.urdf_path, list(cfg.joint_names))
++    if gripper is not None:
++        visual = ArmVisual(gripper.robot, gripper.urdf_path, hand=hand)
++    else:
++        visual = ArmVisual(ik.robot, cfg.urdf_path, hand=hand)
+ 
+     viz = None
+     viz_url = None
+@@ -570,6 +577,10 @@ def main() -> int:
+ 
+         t_ik = time.perf_counter()
+         q, clamped = ik.solve(target)
++        # 화면용 그리퍼 로봇에 팔 자세를 복사하고 트리거로 조를 연다.
++        # ★ IK 로봇은 안 건드린다 (5축 그대로여야 프로토콜이 안 바뀐다).
++        if gripper is not None:
++            gripper.update(q, grasp)
+         ik_times.append(time.perf_counter() - t_ik)
+ 
+         # ── 모터 출력 ────────────────────────────────────────────────
+@@ -658,7 +669,10 @@ def main() -> int:
+             q_prev_cmd = q.copy()
+             motors.write_positions(
+                 q, dq=dq_cmd,
+-                grasp=None if hand is None else float(grasp),
++                # ★ 손이 없어도 grasp 는 보낸다. 신규 팔은 그리퍼가 내장이라
++                #   항상 --no-hand 로 도는데, 그러면 그리퍼를 몰 값이 없어진다.
++                #   servo(8개)는 AmazingHand 전용이라 그때만 채운다.
++                grasp=float(grasp),
+                 servo=None if hand is None else grasp_to_servo(grasp),
+                 # ★ 받는 쪽은 클러치를 모른다. 데이터셋에서 조작자가 손을 뗀
+                 #   구간을 학습에서 빼려면 이 정보가 필요하다.
