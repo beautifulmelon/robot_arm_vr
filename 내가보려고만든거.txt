@@ -3,6 +3,23 @@ cd /Users/jjh/Desktop/robot_arm_vr
 ./run.sh --config config/arm_v2.json --no-hand
 
 ---------------------
+헤드셋 없이 키보드로 조종할 때
+./run.sh --config config/arm_v2.json --no-hand --input keyboard
+
+  → 대시보드를 열고 화면 빈 곳을 한 번 클릭한 뒤 조종
+     https://172.24.219.197:4453/dashboard
+
+  Space   클러치 (토글) ← 이걸 눌러야 팔이 움직임
+  WASD    앞뒤좌우      R/F  위아래
+  I/K     툴 피치       J/L  툴 요       Q/E  손목 롤
+  [ ]     그리퍼 열기/닫기    G  완전 토글
+  H 홈복귀   B 기준리셋   T 트립해제
+  Shift 빠르게(×3)   Alt 정밀(×0.3)
+
+  ※ --input 을 안 주면 vr 입니다. vr 모드에서는 키보드가 아예 안 먹습니다
+    (헤드셋과 대시보드가 서로 싸우지 않게).
+
+---------------------
 Isaac Sim 까지 붙일 때
 ssh 100.93.186.122 'cd ~/projects/isaac-sim && DISPLAY=:0 setsid nohup \
   .venv/bin/python -u scripts/10_vr_bridge.py > /tmp/bridge.log 2>&1 < /dev/null &'

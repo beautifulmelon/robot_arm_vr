@@ -104,6 +104,17 @@
       background:#21262d;color:#c9d1d9;font-size:12px"></select>
     <span id="armnote" style="opacity:.75;margin-left:8px"></span></div>
 
+  <div id="kbdpanel" hidden style="margin-top:14px;border:1px solid #30363d;border-radius:8px;
+       background:#0d1117;padding:12px 14px">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <b style="font-size:14px">⌨ 키보드 조종</b>
+      <span id="kbdstate" style="font-size:12.5px"></span>
+      <span id="kbdfocus" style="font-size:12px;opacity:.7;margin-left:auto"></span>
+    </div>
+    <div id="kbdmap" style="margin-top:10px;font-size:12px;line-height:1.9;opacity:.85;
+         display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2px 18px"></div>
+  </div>
+
   <h2>관절 가동범위</h2>
   <div id="joints"></div>
 
@@ -231,8 +242,168 @@ document.getElementById("meshmode").innerHTML = useMeshes
   ? '실제 형상 (<a href="?mesh=0" style="color:#58a6ff">박스로 보기</a>)'
   : '박스 (<a href="?" style="color:#58a6ff">실제 형상으로 보기</a>)';
 
-function animate() {
+// ────────────────────────────────────────────────────────────────────────────
+// 키보드 조종 — 헤드셋 없이 조종할 때 쓴다 (서버를 --input keyboard 로 띄운 경우).
+//
+// ★ 파이썬 쪽은 하나도 안 바뀐다. 여기서 **가상 오른손 컨트롤러 pose** 를 만들어
+//   VR 페이지와 똑같은 모양의 pose 메시지를 보낸다. 클러치·IK·안전계층은 전부
+//   그대로 탄다. 입력을 누가 만드느냐만 다르다.
+//
+// 좌표계는 WebXR 그대로다 (RUB: +x 오른쪽, +y 위, +z 사용자 쪽).
+// 파이프라인이 RUB→FLU 로 바꾸므로 여기서는 손을 움직이듯 생각하면 된다.
+// ────────────────────────────────────────────────────────────────────────────
+const KBD = {
+  on: false,                       // 서버가 keyboard 모드인가
+  clutch: false,                   // Space 토글. 잡아야 RUN 이 나간다
+  p: new THREE.Vector3(0, 0, 0),   // 가상 손 위치 (클러치가 상대라 원점 시작으로 충분)
+  q: new THREE.Quaternion(),       // 가상 손 자세
+  trigger: 0,                      // 그리퍼 0~1
+  roll: 0,                         // 손목 롤 (썸스틱 X 자리)
+  home: false, reset: false, trip: false,   // 한 프레임짜리 버튼
+  keys: new Set(),
+  frame: 0,
+  last: 0,
+};
+const MOVE_MPS = 0.30;     // 기본 이동 속도
+const ROT_DPS  = 60;       // 기본 회전 속도
+const GRIP_PS  = 1.5;      // 그리퍼 여닫는 속도 (0~1 기준)
+
+const KBD_MAP = [
+  ["Space", "클러치 (토글) — 잡아야 팔이 움직입니다"],
+  ["W / S", "앞 / 뒤"],
+  ["A / D", "좌 / 우"],
+  ["R / F", "위 / 아래"],
+  ["I / K", "툴 피치 (위 / 아래로 기울이기)"],
+  ["J / L", "툴 요 (좌 / 우로 돌리기)"],
+  ["Q / E", "손목 롤"],
+  ["[ / ]", "그리퍼 열기 / 닫기"],
+  ["G", "그리퍼 완전 토글"],
+  ["H", "홈 자세 복귀"],
+  ["B", "클러치 기준 리셋"],
+  ["T", "트립 해제"],
+  ["Shift", "빠르게 (×3)"],
+  ["Alt", "정밀 (×0.3)"],
+];
+
+function kbdEditable() {
+  const el = document.activeElement;
+  return el && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(el.tagName);
+}
+
+addEventListener("keydown", (e) => {
+  if (!KBD.on || kbdEditable()) return;
+  if (e.repeat) { KBD.keys.add(e.code); return; }
+  switch (e.code) {
+    case "Space":      KBD.clutch = !KBD.clutch; e.preventDefault(); break;
+    case "KeyG":       KBD.trigger = KBD.trigger > 0.5 ? 0 : 1; break;
+    case "KeyH":       KBD.home = true; break;
+    case "KeyB":       KBD.reset = true; break;
+    case "KeyT":       KBD.trip = true; break;
+  }
+  KBD.keys.add(e.code);
+});
+addEventListener("keyup", (e) => KBD.keys.delete(e.code));
+addEventListener("blur", () => KBD.keys.clear());   // 창을 벗어나면 눌린 키를 푼다
+
+/** 눌린 키를 적분해 가상 컨트롤러를 움직이고 pose 를 보낸다. */
+function kbdTick(now) {
+  if (!KBD.on) return;
+  const dt = KBD.last ? Math.min((now - KBD.last) / 1000, 0.1) : 0;
+  KBD.last = now;
+  if (!dt) return;
+
+  const k = (c) => KBD.keys.has(c);
+  const fast = (k("ShiftLeft") || k("ShiftRight")) ? 3 : 1;
+  const slow = (k("AltLeft") || k("AltRight")) ? 0.3 : 1;
+  const m = MOVE_MPS * fast * slow * dt;
+  const r = THREE.MathUtils.degToRad(ROT_DPS * fast * slow * dt);
+
+  // 이동 — WebXR RUB. 앞은 -z, 왼쪽은 -x, 위는 +y
+  if (k("KeyW")) KBD.p.z -= m;
+  if (k("KeyS")) KBD.p.z += m;
+  if (k("KeyA")) KBD.p.x -= m;
+  if (k("KeyD")) KBD.p.x += m;
+  if (k("KeyR")) KBD.p.y += m;
+  if (k("KeyF")) KBD.p.y -= m;
+
+  // 회전 — 월드축 기준으로 앞에서 곱한다 (화면에서 보는 대로 돈다)
+  const dq = new THREE.Quaternion();
+  if (k("KeyI")) { dq.setFromAxisAngle(new THREE.Vector3(1,0,0), -r); KBD.q.premultiply(dq); }
+  if (k("KeyK")) { dq.setFromAxisAngle(new THREE.Vector3(1,0,0),  r); KBD.q.premultiply(dq); }
+  if (k("KeyJ")) { dq.setFromAxisAngle(new THREE.Vector3(0,1,0),  r); KBD.q.premultiply(dq); }
+  if (k("KeyL")) { dq.setFromAxisAngle(new THREE.Vector3(0,1,0), -r); KBD.q.premultiply(dq); }
+
+  // 손목 롤은 썸스틱 X 자리로 보낸다 (누르는 동안만 값이 선다)
+  KBD.roll = (k("KeyQ") ? -1 : 0) + (k("KeyE") ? 1 : 0);
+
+  // 그리퍼
+  const g = GRIP_PS * slow * dt;
+  if (k("BracketLeft"))  KBD.trigger = Math.max(0, KBD.trigger - g);
+  if (k("BracketRight")) KBD.trigger = Math.min(1, KBD.trigger + g);
+
+  const pos = { x: KBD.p.x, y: KBD.p.y, z: KBD.p.z };
+  const ori = { x: KBD.q.x, y: KBD.q.y, z: KBD.q.z, w: KBD.q.w };
+  const gp = (over) => Object.assign({
+    trigger: 0, grip: 0, primary: false, secondary: false,
+    stick: [0, 0], stickPress: false, gripPressed: false,
+  }, over);
+
+  const payload = {
+    t: now / 1000,
+    frame: ++KBD.frame,
+    scale: 1.0,
+    source: "keyboard",
+    // 가상 오른손 — VR 페이지가 보내는 것과 같은 모양
+    right: {
+      grip: { position: pos, orientation: ori },
+      targetRay: { position: pos, orientation: ori },
+      gamepad: gp({
+        trigger: +KBD.trigger.toFixed(3),
+        grip: KBD.clutch ? 1.0 : 0.0,        // ★ 클러치는 grip 아날로그값이다
+        gripPressed: KBD.clutch,
+        primary: KBD.home,                    // A = 홈 복귀
+        secondary: KBD.reset,                 // B = 기준 리셋
+        stick: [KBD.roll, 0],                 // 썸스틱 X = 손목 롤
+      }),
+    },
+    // 가상 왼손 — 트립 해제(왼손 트리거)만 쓴다
+    left: {
+      grip: { position: { x: -0.3, y: 0, z: 0 }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
+      gamepad: gp({ trigger: KBD.trip ? 1.0 : 0.0 }),
+    },
+    hands: {}, handPose: {},
+    position: pos, orientation: ori,
+    move: KBD.clutch,
+  };
+  KBD.home = KBD.reset = KBD.trip = false;   // 버튼은 한 프레임만
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "pose", data: payload }));
+  }
+  kbdPanel();
+}
+
+let kbdMapDrawn = false;
+function kbdPanel() {
+  if (!kbdMapDrawn) {
+    $("kbdmap").innerHTML = KBD_MAP.map(([k, v]) =>
+      `<div><code style="background:#21262d;border:1px solid #30363d;border-radius:4px;
+        padding:1px 6px;font-size:11.5px">${k}</code> ${v}</div>`).join("");
+    kbdMapDrawn = true;
+  }
+  const open = (57.9 + (0.5 - 57.9) * KBD.trigger).toFixed(1);
+  $("kbdstate").innerHTML =
+    (KBD.clutch
+      ? `<span style="color:#3fb950">● 클러치 잡음 — 움직입니다</span>`
+      : `<span style="color:#8b949e">○ 클러치 놓음 — Space 로 잡으세요</span>`)
+    + ` &nbsp;·&nbsp; 그리퍼 ${(KBD.trigger * 100).toFixed(0)}% (개구 ${open}mm)`;
+  $("kbdfocus").textContent = kbdEditable()
+    ? "⚠ 입력칸에 포커스가 있어 키가 안 먹습니다 — 빈 곳을 클릭하세요" : "";
+}
+
+function animate(now) {
   requestAnimationFrame(animate);
+  kbdTick(now || performance.now());
   controls.update();
   renderer.render(scene, camera);
 }
@@ -275,6 +446,14 @@ function card(k, v, cls) {
 
 function render(s) {
   lastLive = s;
+  // ★ 서버가 --input keyboard 로 떠 있을 때만 키보드가 먹는다. VR 모드에서
+  //   대시보드가 pose 를 같이 쏘면 헤드셋과 싸우므로 조용히 꺼둔다.
+  const kbd = s.input_mode === "keyboard";
+  if (kbd !== KBD.on) {
+    KBD.on = kbd;
+    $("kbdpanel").hidden = !kbd;
+    if (kbd) kbdPanel();
+  }
   // ★ 미리보기 모드에서는 3D 뷰를 라이브로 덮지 않는다. 아래 패널(관절·링크·
   //   모터 상태)은 계속 라이브를 보여준다 — 그게 사람이 봐야 하는 값이다.
   if (armMode === "live") robotView.update(s);
