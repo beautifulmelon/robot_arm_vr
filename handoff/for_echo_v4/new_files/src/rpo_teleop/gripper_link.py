@@ -29,11 +29,13 @@ from pathlib import Path
 
 import numpy as np
 
-# 그리퍼 개구 범위 (mm). gripper_map.py 의 유효 구간 안쪽으로 잡는다.
+# 그리퍼 개구 범위 (mm). 최대는 gripper_map.OPENING_RANGE_MM 에서 읽는다.
+# 2026-09-03 갱신판은 82.52 mm (서보 10~198°). 없으면 구판(10~120°) 값으로.
 OPEN_MIN_MM = 0.5
-OPEN_MAX_MM = 57.9
+OPEN_MAX_FALLBACK_MM = 57.9
 
-# URDF 관절값을 만드는 상수 (기구 담당 문서 §4-4)
+# URDF 관절값을 만드는 상수 (기구 담당 문서 §4-4). 신판 gripper_map 은
+# joint_rad() 로 직접 주므로 그쪽을 우선 쓴다.
 ROCKER_L_ZERO_DEG = 45.10
 ROCKER_R_ZERO_DEG = 52.47
 
@@ -47,6 +49,8 @@ class GripperLink:
         self._gmap = gmap
         self._arm = list(arm_names)
         self._names = set(robot.joint_names())
+        rng = getattr(gmap, "OPENING_RANGE_MM", None)
+        self.open_max_mm = float(rng[1]) if rng else OPEN_MAX_FALLBACK_MM
 
     def update(self, q_arm, grasp: float) -> None:
         """팔 관절은 IK 결과를 복사하고, 그리퍼는 trigger 로 연다.
@@ -59,16 +63,18 @@ class GripperLink:
             self.robot.set_joint(name, float(val))
 
         # 트리거 0 → 활짝, 1 → 닫힘
-        opening = OPEN_MAX_MM + (OPEN_MIN_MM - OPEN_MAX_MM) * float(np.clip(grasp, 0.0, 1.0))
+        opening = self.opening_mm(grasp)
         try:
             servo = self._gmap.servo_for_opening(opening)
-            rl, rr = self._gmap.rocker_deg(servo)
+            if hasattr(self._gmap, "joint_rad"):          # 신판: URDF 값을 바로 준다
+                gj, rj = self._gmap.joint_rad(servo)
+            else:                                          # 구판: 로커각에서 계산
+                rl, rr = self._gmap.rocker_deg(servo)
+                gj = np.radians(ROCKER_L_ZERO_DEG - rl)
+                rj = np.radians(rr - ROCKER_R_ZERO_DEG)
         except Exception:
             return                       # 변환이 실패해도 팔은 계속 그린다
-        vals = {
-            "gripper_joint": np.radians(ROCKER_L_ZERO_DEG - rl),
-            "rocker_r_joint": np.radians(rr - ROCKER_R_ZERO_DEG),
-        }
+        vals = {"gripper_joint": float(gj), "rocker_r_joint": float(rj)}
         # 조는 로커의 역회전이다 (mimic ×-1). 평행4절과 등가라 조가 안 돈다.
         vals["jaw_l_joint"] = -vals["gripper_joint"]
         vals["jaw_r_joint"] = -vals["rocker_r_joint"]
@@ -78,7 +84,8 @@ class GripperLink:
         self.robot.update_kinematics()
 
     def opening_mm(self, grasp: float) -> float:
-        return OPEN_MAX_MM + (OPEN_MIN_MM - OPEN_MAX_MM) * float(np.clip(grasp, 0.0, 1.0))
+        m = self.open_max_mm
+        return m + (OPEN_MIN_MM - m) * float(np.clip(grasp, 0.0, 1.0))
 
 
 def attach(ik_urdf: str | Path, arm_names: list[str]) -> GripperLink | None:

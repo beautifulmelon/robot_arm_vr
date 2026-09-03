@@ -14,15 +14,18 @@
     body/body_with_arm_v2_nomimic.urdf  ★ 이걸로 USD 를 뽑으세요 (신규 팔+그리퍼)
     config/arm_v2.json                  홈 자세 · 리밋 · 리치
     tools/gripper_map.py                grasp → 서보각 변환 (실측 56점 피팅)
-    ARM_VERSIONS.md                     ★ joint1 영점이 180° 옮겨졌습니다
+    ARM_VERSIONS.md                     ★ 09-03: 개구 82.52 · joint5 재체결 · joint1 원복
     67_ARM_NEW2_HANDOFF.txt             기구 담당 원본. §7 함정 필독
     62_CAMERA_SPEC.txt                  카메라 규격 (D435i 는 69°, 87° 아님)
 
   ★★ 바뀐 것 세 가지 — 이전 자료와 다릅니다
       1) 팔이 **신규 5축 + 평행 그리퍼** 로 바뀌었습니다. 구동관절 17 → 9
          (팔 5 + 그리퍼 4). 손(AmazingHand)은 이제 안 씁니다
-      2) **joint1 영점이 180° 옮겨졌습니다.** 첨부 URDF 는 새 영점입니다.
-         홈은 joint1 = 0° 이고 팔이 정확히 정면을 봅니다. ARM_VERSIONS.md 참고
+      2) **joint5 origin 이 [0 0 −π]** — 그리퍼를 motor5 에 180° 돌려 단 것을 모델.
+         (09-02 의 joint1 영점 이동은 취소. 관절값 규약 원래대로.) 홈은
+         [0, -54.51, +84.45, +80.78, +4.90]°, 팔이 정면. ARM_VERSIONS.md 참고
+      4) 그리퍼 개구 57 → **82.52 mm**. tools/gripper_map.py 는 보간표 판 —
+         전달본 다항식은 100° 넘으면 발산하니 이쪽을 쓰세요
       3) Command 에 **grasp(0~1)** 가 항상 실려 옵니다. servo(8개)는 이제 안 옵니다
 
   ※ 61 · 63 의 커버리지·박스 위치 숫자는 **옛날 팔** 기준이라 폐기입니다.
