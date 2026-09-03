@@ -1,0 +1,65 @@
+# 로봇 팔 버전 대장
+
+버전을 붙이는 것은 **신규 계보**(바닥 파지 전용 5축 + 평행 그리퍼)뿐입니다.
+구형·임시 팔은 다른 로봇이라 버전을 붙이지 않습니다.
+
+## 규칙
+
+1. **번호는 기구 담당이 부르는 번호를 그대로 씁니다.** 우리가 따로 매기면
+   세 사람이 서로 다른 번호를 말하게 됩니다.
+2. 새 URDF 를 받으면 `assets/arm_v<N>/` + `config/arm_v<N>.json` 을 만들고
+   **이전 버전은 지우지 않습니다.** 대시보드에서 골라 비교할 수 있어야 합니다.
+3. ★ **"운동학 변화" 칸을 반드시 채웁니다.** 이게 이 표의 핵심입니다.
+   - **없음** → IK · 도달범위 · config · 홈 자세를 다시 안 재도 됩니다
+   - **있음** → 전부 다시 재고 `12_arm_preview.py` · `14_reach_map.py` 를 돌립니다
+
+## 대장
+
+| 버전 | 받은 날 | 출처 (Fusion) | 운동학 변화 | 질량 | 문서 |
+|---|---|---|---|---|---|
+| v1 | 2026-08-29 | `new_robotarm_urdf` v8 / 그리퍼변형 v60 | 최초 | 2600.6 g | handoff/64, 66 |
+| **v2** | 2026-09-01 | `new_robotarm_v2_urdf` v8 / 그리퍼변형 v60 | **없음** — 회전축 위치 전부 동일 | 2640.9 g | handoff/67, 68 |
+
+### v2 에서 바뀐 것 (handoff/67 §8-1)
+- j2/j3/j4 를 **양측 지지 요크**로. 외팔 지지 시 플랜지 볼트가 PLA 를 19 MPa 로
+  눌러 크리프하는데, 요크로 받으면 0.47 MPa 로 떨어집니다.
+- 모터를 자기 축 방향으로 12.25 mm 밀어 (모터+캡) 중심을 팔 중심선 y=0 에 맞춤
+- 질량 link1 400.4→433.1 g · link4 23.5→32.0 g
+
+회전축 위치 `j1 z=-1.70 / j2 56.00 / j3 236.00 / j4 416.00 / j5 (0,0)` 는 v1 과 동일.
+따라서 **링크 길이·도달거리·IK·토크 계산이 그대로 유효**합니다.
+
+## 파일 규약
+
+```
+assets/arm_v<N>/
+    arm_v<N>.urdf            원본. 그리퍼가 mimic 으로 묶임
+    arm_v<N>_nomimic.urdf    좌우 로커 독립. 정밀 파지용
+    arm_v<N>_ik.urdf         ★ 텔레옵이 쓰는 IK 전용판 (11_make_ik_urdf.py 로 생성)
+    meshes/ gripper_map.py gripper_sweep.json _props.json renders/
+config/arm_v<N>.json
+```
+
+★ `<이름>_ik.urdf → <이름>.urdf` 규약을 `gripper_link.py` 가 씁니다.
+  IK URDF 는 그리퍼 관절이 fixed 라 조가 안 움직이므로, 화면용으로 원본을 찾습니다.
+  이 규약이 깨지면 그리퍼가 화면에서 안 움직입니다.
+
+★ **팔 식별자는 파일명입니다.** `check_robot_match` 가 config 의 URDF 파일명과
+  State 의 `robot` 을 대조합니다. 이름을 바꾸면 젯슨이 보내야 하는 값도 바뀝니다.
+  v2 기준 기대값은 **`arm_v2_ik.urdf`** 입니다.
+
+## 옛 이름 대응
+
+2026-09-01 에 `arm_new`/`arm_new2` → `arm_v1`/`arm_v2` 로 바꿨습니다.
+**handoff/64·65·66·67 과 board 의 과거 기록은 주고받은 원본이라 고치지 않았습니다.**
+거기 적힌 옛 이름은 아래로 읽으세요.
+
+| 옛 이름 | 지금 |
+|---|---|
+| `assets/arm_new/` · `arm_new*.urdf` | `assets/arm_v1/` · `arm_v1*.urdf` |
+| `assets/arm_new2/` · `arm_new2*.urdf` | `assets/arm_v2/` · `arm_v2*.urdf` |
+| `config/arm_new.json` | `config/arm_v1.json` |
+| `config/arm_new2.json` | `config/arm_v2.json` |
+
+※ URDF 안의 `<robot name="arm_new">` 은 기구 담당 생성기가 넣는 값이라 그대로 뒀습니다
+  (고치면 재생성할 때 되돌아옵니다). 코드는 이 값을 쓰지 않습니다 — 파일명을 씁니다.

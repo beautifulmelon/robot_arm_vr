@@ -30,3 +30,4 @@ handoff/for_isaac/body/
 # 렌더 산출물 — scripts/10_camera_preview.py 등으로 다시 만든다
 out/
 handoff_arm_v2_for_echo_v4.tar.gz
+handoff_isaac_verification.tar.gz
