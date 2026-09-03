@@ -154,6 +154,20 @@
    본체/손목 카메라 시점을 핀홀 투영으로 렌더합니다. 기울기 각도를 정할 때
    씁니다. `--camera body|wrist --tilts 30 50 60`
 
+--- scripts/15_merge_body_arm.py ---
+   본체(차체) + 팔을 하나의 URDF 로 합칩니다. Isaac 이 한 몸인 USD 를 필요로
+   하는데, 기존 body_with_arm_nomimic.urdf 는 **구형 팔 + AmazingHand** 라
+   신규 팔에는 못 씁니다.
+
+--- scripts/16_rotate_joint_zero.py   ★ 영점 규약 ---
+   관절의 **영점(0 위치)** 을 축 둘레로 돌립니다. 형상은 안 바뀝니다.
+   joint1 을 180° 돌리는 데 썼습니다 — 이유는 03_홈자세.txt 3장.
+
+       T_origin_new = T_origin_old · Rot(axis, offset)   →   q_new = q_old − offset
+
+   ★ 기구 담당이 새 URDF 를 주면 그 파일은 **옛 영점**입니다. 매번 이걸
+     돌려야 합니다. 안 돌리면 팔이 반 바퀴 돌아간 채로 뜹니다.
+
 --- web/vendor/arms.json ---
    12_arm_preview.py 가 만든 결과물. 대시보드가 팔 목록을 여기서 읽습니다.
    ★ 팔을 추가하거나 홈 자세를 바꾸면 **다시 생성해야 합니다.**
@@ -181,6 +195,13 @@
    (3) 매 프레임 gripper.update(q, grasp)
    (4) import 한 줄
 
+   (5) ★ --input {vr,keyboard} — 헤드셋 없이 키보드로 조종
+       기본이 vr 이라 **안 주면 지금까지와 완전히 같습니다.**
+       keyboard 모드에서는 대시보드가 키보드 입력으로 **가상 오른손 컨트롤러
+       pose** 를 만들어 VR 페이지와 똑같은 모양의 메시지를 보냅니다.
+       클러치·IK·안전계층·UDP 프로토콜을 전부 그대로 탑니다.
+       상태에 input_mode 가 실려 나가고, 대시보드는 그걸 보고 켜집니다.
+
 --- 02_xr_server_nocache.patch   (src/rpo_teleop/xr_server.py) ---
    index.html / robot_view.js 응답에 `Cache-Control: no-cache` 를 붙입니다.
    ★ 헤드셋이 옛 페이지를 계속 띄우는 일이 실제로 있었습니다. 페이지를
@@ -192,6 +213,12 @@
    · HUD 첫 줄에 `메시 10/10` 표시 — 헤드셋 안에서 로드 여부를 눈으로 확인
    · 대시보드에 **팔 선택기**와 **본체 O/X 토글** 추가
    · robot_view.js 에 armGroup/bodyGroup 분리, loadBody(), meshInfo()
+   · ★ 대시보드에 **키보드 조종** 패널과 가상 컨트롤러 송신
+       Space=클러치(토글) WASD=앞뒤좌우 R/F=위아래 I/K=툴피치 J/L=툴요
+       Q/E=손목롤 [ ]=그리퍼 G=그리퍼토글 H=홈 B=기준리셋 T=트립해제
+       Shift=×3 Alt=×0.3   (키 판정은 event.code — 한/영 무관)
+       서버가 keyboard 모드일 때만 켜집니다. vr 모드에서 대시보드가 pose 를
+       같이 쏘면 헤드셋과 싸우므로 조용히 꺼둡니다.
 
 --- 00_all.patch ---
    위 3개를 합친 것. 한 번에 적용할 때 씁니다.

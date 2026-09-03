@@ -61,22 +61,25 @@
    dingdongdengdong/robot_arm_vr 의 main (b2fd949) 위에 `git apply -3` 를
    실제로 돌려본 결과입니다.
 
-       scripts/05_teleop_sim.py     cleanly   ✅  (그쪽 +117줄과 자동 병합)
        src/rpo_teleop/xr_server.py  cleanly   ✅
        web/dashboard.html           cleanly   ✅
        web/robot_view.js            cleanly   ✅
-       web/index.html               conflicts ⚠️  ← 여기만 손으로 푸세요
+       scripts/05_teleop_sim.py     충돌 1곳  ⚠️
+       web/index.html               충돌 1곳  ⚠️
 
-   ★ **충돌은 web/index.html 하나뿐입니다.**
-     그쪽이 "Quest 홈버튼 비활성화" 로 이 파일을 고쳤고, 이쪽은 메시 모드와
-     HUD 표시를 고쳤습니다. 서로 다른 곳이라 양쪽을 **둘 다 살리면** 됩니다.
+   ★ **각각 덩어리 하나씩, 둘 다 서로 다른 것을 고친 자리라 양쪽을 다
+     살리면 됩니다.** 지우지 마세요.
 
-     이쪽 변경은 두 군데입니다.
-       (1) const useMeshes = ...get("mesh") !== "0";   ← 실제 형상을 기본으로
-       (2) HUD 첫 줄 끝에 ${robotView ? robotView.meshInfo() : "-"}
+   scripts/05_teleop_sim.py  (argparse 블록)
+       그쪽   Quest 홈버튼 비활성화 관련 인자
+       이쪽   --input {vr,keyboard}   키보드 조종 (기본 vr)
+       → 두 인자를 나란히 두면 됩니다.
 
-     `<<<<<<<` 표시를 풀 때 그쪽 홈버튼 관련 코드를 지우지 마세요.
-
+   web/index.html  (VR 페이지 초기화)
+       그쪽   홈버튼 관련 코드
+       이쪽   (1) const useMeshes = ...get("mesh") !== "0";   실제 형상 기본
+              (2) HUD 첫 줄 끝에 ${robotView ? robotView.meshInfo() : "-"}
+       → 둘 다 남기면 됩니다.
 
  2. 확인 항목
 --------------------------------------------------------------------------------
@@ -87,6 +90,9 @@
    [ ] 대시보드 팔 선택기에 v2 가 뜨고 홈 자세가 위 03 문서와 같은 모양
    [ ] VR HUD 첫 줄에 `메시 10/10`
    [ ] 오른손 트리거를 당기면 화면에서 조가 닫힌다
+   [ ] 홈에서 joint1 이 **+8.0°** (옛 규약 -172° 가 아님 — 03 문서 3장)
+   [ ] --input keyboard 로 띄우면 대시보드에 키보드 패널이 뜬다
+       (--input 없이 띄우면 안 뜨는 것이 정상입니다)
 
 
  3. ★ 자주 걸리는 것

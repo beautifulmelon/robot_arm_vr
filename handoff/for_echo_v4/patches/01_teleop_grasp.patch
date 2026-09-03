@@ -1,16 +1,49 @@
 diff --git a/scripts/05_teleop_sim.py b/scripts/05_teleop_sim.py
-index dec499b..7e4cece 100644
+index dec499b..733166c 100644
 --- a/scripts/05_teleop_sim.py
 +++ b/scripts/05_teleop_sim.py
-@@ -40,6 +40,7 @@ sys.path.insert(0, str(ROOT / "src"))
+@@ -40,6 +40,14 @@ sys.path.insert(0, str(ROOT / "src"))
  
  from rpo_teleop.arm_config import ArmConfig  # noqa: E402
  from rpo_teleop.certs import get_local_ip, list_local_ips  # noqa: E402
 +from rpo_teleop.gripper_link import attach as attach_gripper  # noqa: E402
++
++
++# 조종 입력. --input 으로 정한다. 상태 dict 두 곳에서 읽으므로 모듈 상수로 둔다.
++#   vr        헤드셋 WebXR 페이지가 컨트롤러 pose 를 보낸다 (기본)
++#   keyboard  대시보드가 키보드로 만든 가상 컨트롤러 pose 를 보낸다
++# 받는 쪽 파이프라인(클러치·IK·안전계층)은 완전히 같다 — pose 를 누가 만드느냐만 다르다.
++INPUT_MODE = "vr"
  from rpo_teleop.hand_model import HandModel, grasp_to_servo  # noqa: E402
  from rpo_teleop.jetson_link import (  # noqa: E402
      STATE_TRIP, JetsonBackend, check_robot_match)
-@@ -304,7 +305,13 @@ def main() -> int:
+@@ -209,6 +217,7 @@ def idle_state(ik: "ArmIK", cfg: ArmConfig, scale: float,
+         "robot": {"name": Path(cfg.urdf_path).name, "dof": cfg.dof,
+                   "ee_frame": cfg.ee_frame, "scale": scale,
+                   "position_rank": cfg.position_rank},
++        "input_mode": INPUT_MODE,
+         "engaged": False,
+         "ee": {"x": float(ee[0, 3]), "y": float(ee[1, 3]), "z": float(ee[2, 3])},
+         "reach": {"current": float(np.linalg.norm(ee[:3, 3] - cfg.shoulder)),
+@@ -247,6 +256,8 @@ def main() -> int:
+                     help="Meshcat 3D 뷰도 띄운다. 대시보드(/dashboard)에 이미 3D 뷰가 있어\n"
+                          "보통은 불필요하고, 포트 7000 이 macOS AirPlay 와 충돌해 번호가 계속 바뀐다")
+     ap.add_argument("--no-hand", action="store_true", help="손을 표시/제어하지 않음")
++    ap.add_argument("--input", choices=("vr", "keyboard"), default="vr",
++                    help="조종 입력. keyboard 는 헤드셋 없이 대시보드에서 키보드로 조종한다")
+     ap.add_argument("--motors", type=str, default="none",
+                     choices=("none", "jetson"),
+                     help="모터 출력. none=시뮬만, jetson=UDP 로 젯슨(또는 가짜 젯슨)에 지령")
+@@ -254,6 +265,8 @@ def main() -> int:
+                     help="젯슨 주소. 생략하면 비컨(UDP 5007)으로 자동 탐색")
+     ap.add_argument("--no-viz", action="store_true", help=argparse.SUPPRESS)  # 하위호환
+     args = ap.parse_args()
++    global INPUT_MODE
++    INPUT_MODE = args.input
+ 
+     if args.urdf is not None:
+         print(f"  URDF 즉석 측정 중… ({args.urdf.name})", flush=True)
+@@ -304,7 +317,13 @@ def main() -> int:
              hand.set_grasp(0.0)
          except Exception as exc:
              print(f"  ⚠️  손 모델 로드 실패 ({exc}) — 팔만 표시합니다", flush=True)
@@ -25,7 +58,25 @@ index dec499b..7e4cece 100644
  
      viz = None
      viz_url = None
-@@ -570,6 +577,10 @@ def main() -> int:
+@@ -391,8 +410,15 @@ def main() -> int:
+               f"범위 {np.degrees(roll_lo):+.0f}° ~ {np.degrees(roll_hi):+.0f}°")
+     else:
+         print("  손목 롤      : 없음 (끝관절이 EE 자세를 안 바꿉니다)")
+-    print("  오른손 Grip 을 꾹 누른 채 팔을 움직이세요. 떼면 그 자리에 멈춥니다.")
+-    print("  A=홈 복귀   B=기준 리셋   썸스틱X=손목 롤")
++    if args.input == "keyboard":
++        print("  ⌨  키보드 조종 모드 — 헤드셋이 없어도 됩니다.")
++        print(f"     대시보드를 열고 화면을 한 번 클릭한 뒤 조종하세요.")
++        print("     Space=클러치(토글)  WASD=앞뒤좌우  R/F=위아래")
++        print("     I/K=툴 피치  J/L=툴 요  Q/E=손목 롤  [ ]=그리퍼  G=그리퍼 토글")
++        print("     H=홈 복귀  B=기준 리셋  T=트립 해제  Shift=빠르게  Alt=정밀")
++    else:
++        print("  오른손 Grip 을 꾹 누른 채 팔을 움직이세요. 떼면 그 자리에 멈춥니다.")
++        print("  A=홈 복귀   B=기준 리셋   썸스틱X=손목 롤")
+     if hand is not None:
+         print(f"  손: 트리거=쥐는 정도(0~1)  서보 {hand.n_servos}개 / 관절 {hand.n_joints}개")
+     print("  [좌우가 반대로 느껴지면] 왼손 X=미러 토글, 왼손 Y=yaw +90°")
+@@ -570,6 +596,10 @@ def main() -> int:
  
          t_ik = time.perf_counter()
          q, clamped = ik.solve(target)
@@ -36,7 +87,7 @@ index dec499b..7e4cece 100644
          ik_times.append(time.perf_counter() - t_ik)
  
          # ── 모터 출력 ────────────────────────────────────────────────
-@@ -658,7 +669,10 @@ def main() -> int:
+@@ -658,7 +688,10 @@ def main() -> int:
              q_prev_cmd = q.copy()
              motors.write_positions(
                  q, dq=dq_cmd,
@@ -48,3 +99,11 @@ index dec499b..7e4cece 100644
                  servo=None if hand is None else grasp_to_servo(grasp),
                  # ★ 받는 쪽은 클러치를 모른다. 데이터셋에서 조작자가 손을 뗀
                  #   구간을 학습에서 빼려면 이 정보가 필요하다.
+@@ -692,6 +725,7 @@ def main() -> int:
+             "robot": {"name": Path(cfg.urdf_path).name, "dof": cfg.dof,
+                       "ee_frame": cfg.ee_frame, "scale": scale,
+                       "position_rank": cfg.position_rank},
++            "input_mode": INPUT_MODE,
+             # ★ 실물이 붙어 있는데 Isaac 주소로 잘못 들어가면 조종은 되는데
+             #   실물이 안 움직인다(반대도 마찬가지). 헤드셋을 쓰면 터미널을
+             #   못 보므로 화면에 없으면 알 방법이 없다.
